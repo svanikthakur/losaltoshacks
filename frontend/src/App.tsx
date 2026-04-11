@@ -8,6 +8,11 @@ import Login, { Signup } from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Validate from './pages/Validate'
 import Report from './pages/Report'
+import DNA from './pages/DNA'
+import Network from './pages/Network'
+import Investors from './pages/Investors'
+import TimelinePage from './pages/Timeline'
+import LaunchKit from './pages/LaunchKit'
 import { AuthProvider, useAuth } from './lib/auth'
 
 function Protected({ children }: { children: JSX.Element }) {
@@ -49,6 +54,11 @@ function AnimatedRoutes() {
             </Protected>
           }
         />
+        <Route path="/dna" element={<Protected><DNA /></Protected>} />
+        <Route path="/network" element={<Protected><Network /></Protected>} />
+        <Route path="/investors/:reportId" element={<Protected><Investors /></Protected>} />
+        <Route path="/timeline/:reportId" element={<Protected><TimelinePage /></Protected>} />
+        <Route path="/launchkit/:reportId" element={<Protected><LaunchKit /></Protected>} />
       </Routes>
     </AnimatePresence>
   )

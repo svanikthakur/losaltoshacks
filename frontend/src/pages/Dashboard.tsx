@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../lib/auth'
 import Reveal from '../components/Reveal'
+import DNACard from '../components/DNACard'
+import BenchmarksCard from '../components/BenchmarksCard'
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -36,6 +38,12 @@ export default function Dashboard() {
             New validation <span className="arrow">→</span>
           </Link>
         </motion.div>
+
+        {/* DNA + community benchmarks */}
+        <div className="grid md:grid-cols-2 gap-6 mb-10">
+          <DNACard />
+          <BenchmarksCard myScore={reports[0]?.validation_score} />
+        </div>
 
         {loading ? (
           <div className="card p-16 text-center text-ink-dim">Loading…</div>

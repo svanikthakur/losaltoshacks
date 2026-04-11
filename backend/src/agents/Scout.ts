@@ -13,6 +13,8 @@ export interface ScoutOutput {
   trendDirection: 'rising' | 'stable' | 'declining'
   marketKeywords: string[]
   collisionRisk: 'low' | 'medium' | 'high'
+  collisionScore: number       // 0-100, derived from competitor count + crowding
+  differentiationAngles: string[]  // 3 angles nobody else is taking
   ycPresence: boolean
   summary: string
   // Frontend-compat fields (lets the existing Report.tsx render without changes)
@@ -31,6 +33,8 @@ Return ONLY valid JSON (no markdown, no commentary) with this shape:
   "trendDirection": "rising" | "stable" | "declining",
   "marketKeywords": string[],
   "collisionRisk": "low" | "medium" | "high",
+  "collisionScore": number (0-100, where 100 = extremely crowded market),
+  "differentiationAngles": string[] (3 specific angles nobody is currently taking),
   "ycPresence": boolean,
   "summary": string,
   "demandScore": number (1-10 integer),
@@ -38,6 +42,8 @@ Return ONLY valid JSON (no markdown, no commentary) with this shape:
   "sources": string[] (up to 5 source URLs),
   "quotes": string[] (2-3 realistic customer quotes inferred from signals)
 }
+Collision scoring: 0-30 = wide-open market, 31-60 = some competition, 61-100 = crowded.
+Differentiation angles must be SPECIFIC (e.g. "vertical for landscapers" not "go niche").
 Be honest. If demand is weak, say so. Ground your analysis in the evidence you were given.`
 
 export async function runScout(idea: string): Promise<ScoutOutput> {

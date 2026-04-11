@@ -1,8 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { api, openAgentSocket } from '../lib/api'
 import BorderGlow from '../components/BorderGlow'
+import ScoreChart from '../components/ScoreChart'
+import PivotCards from '../components/PivotCards'
+import StressTest from '../components/StressTest'
 
 const AGENT_DEFS = [
   { key: 'scout', name: 'Scout', tag: 'Market demand' },
@@ -105,6 +108,9 @@ export default function Report() {
                 output={report[`${a.key}_output`]}
               />
             ))}
+
+            {/* Score history chart + collision badge */}
+            {progress === 5 && <PostPipelineExtras report={report} reportId={id} />}
           </section>
 
           {/* Sidebar */}
@@ -347,5 +353,150 @@ function ExportRow({ label, url, ext }: { label: string; url?: string; ext: stri
       <span className="text-sm">{label}</span>
       <span className="text-xs font-mono text-muted group-hover:text-accent transition-colors">{ext}</span>
     </a>
+  )
+}
+
+/* ================================================================
+   PostPipelineExtras — score chart, collision badge, action buttons,
+   pivot engine (auto if score < 6), stress test modal
+   ================================================================ */
+function PostPipelineExtras({ report, reportId }: { report: any; reportId: string }) {
+  const [history, setHistory] = useState<{ score: number; recordedAt: number }[]>([])
+  const [showStressTest, setShowStressTest] = useState(false)
+  const collision = report?.scout_output?.collisionScore
+  const angles = (report?.scout_output?.differentiationAngles as string[]) || []
+
+  useEffect(() => {
+    api
+      .getScoreHistory(reportId)
+      .then((r) => setHistory(r.history || []))
+      .catch(() => {})
+  }, [reportId])
+
+  return (
+    <div className="space-y-6 mt-2">
+      {/* Score chart */}
+      <BorderGlow
+        backgroundColor="#0C0F15"
+        borderRadius={14}
+        glowRadius={36}
+        glowColor="120 100 50"
+        colors={['#00FF41', '#34D399', '#A7F3D0']}
+        edgeSensitivity={20}
+      >
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.2em]" style={{ color: 'var(--color-charge)' }}>
+                // VALIDATION SCORE OVER TIME
+              </div>
+              <div className="text-xs text-muted mt-1">
+                Auto-tracked. Re-run validation to update the line.
+              </div>
+            </div>
+            <div className="font-mono text-2xl" style={{ color: 'var(--color-charge)' }}>
+              {report.validation_score}/10
+            </div>
+          </div>
+          <ScoreChart history={history} />
+        </div>
+      </BorderGlow>
+
+      {/* Collision detection */}
+      {collision !== undefined && (
+        <BorderGlow
+          backgroundColor="#0C0F15"
+          borderRadius={14}
+          glowRadius={36}
+          glowColor="120 100 50"
+          colors={['#00FF41', '#34D399', '#A7F3D0']}
+          edgeSensitivity={20}
+        >
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="font-mono text-[10px] uppercase tracking-[0.2em]" style={{ color: 'var(--color-charge)' }}>
+                  // COLLISION DETECTION
+                </div>
+                <div className="text-xs text-muted mt-1">
+                  How crowded is this market? 0 = wide open · 100 = elbow to elbow
+                </div>
+              </div>
+              <div
+                className="font-display text-4xl font-bold tracking-tight"
+                style={{
+                  color: collision < 30 ? '#00FF41' : collision < 60 ? '#FBBF24' : '#FB7185',
+                }}
+              >
+                {collision}
+              </div>
+            </div>
+            {angles.length > 0 && (
+              <div>
+                <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted mb-2">
+                  ›  3 angles nobody is taking
+                </div>
+                <ul className="space-y-1.5 text-sm text-ink-dim">
+                  {angles.map((a, i) => (
+                    <li key={i} className="flex items-baseline gap-2">
+                      <span className="text-accent">›</span>
+                      {a}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </BorderGlow>
+      )}
+
+      {/* Action buttons */}
+      <BorderGlow
+        backgroundColor="#0C0F15"
+        borderRadius={14}
+        glowRadius={36}
+        glowColor="120 100 50"
+        colors={['#00FF41', '#34D399', '#A7F3D0']}
+        edgeSensitivity={20}
+      >
+        <div className="p-6">
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] mb-4" style={{ color: 'var(--color-charge)' }}>
+            // NEXT ACTIONS
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <button onClick={() => setShowStressTest(true)} className="btn-ghost justify-center">
+              Investor stress test ↗
+            </button>
+            <Link to={`/timeline/${reportId}`} className="btn-ghost justify-center">
+              Fundraising timeline ↗
+            </Link>
+            <Link to={`/launchkit/${reportId}`} className="btn-ghost justify-center">
+              Launch kit ↗
+            </Link>
+            <Link to={`/investors/${reportId}`} className="btn-ghost justify-center">
+              VC tracking ↗
+            </Link>
+          </div>
+        </div>
+      </BorderGlow>
+
+      {/* Pivot engine — auto-shown when score < 6 */}
+      {report.validation_score < 6 && (
+        <BorderGlow
+          backgroundColor="#0C0F15"
+          borderRadius={14}
+          glowRadius={36}
+          glowColor="120 100 50"
+          colors={['#00FF41', '#34D399', '#A7F3D0']}
+          edgeSensitivity={20}
+        >
+          <div className="p-6">
+            <PivotCards reportId={reportId} />
+          </div>
+        </BorderGlow>
+      )}
+
+      {showStressTest && <StressTest reportId={reportId} onClose={() => setShowStressTest(false)} />}
+    </div>
   )
 }

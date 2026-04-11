@@ -5,7 +5,14 @@
  * This keeps the call-site contract identical across the memory + supabase adapters.
  */
 import { randomUUID } from 'crypto'
-import type { Founder, Report, ScoreHistoryEntry, VcMatch, EmailTracking } from '../types/index.js'
+import type {
+  Founder,
+  Report,
+  ScoreHistoryEntry,
+  VcMatch,
+  EmailTracking,
+  SimulatorSession,
+} from '../types/index.js'
 
 const founders = new Map<string, Founder>()
 const foundersByEmail = new Map<string, Founder>()
@@ -15,6 +22,7 @@ const vcMatches = new Map<string, VcMatch>()
 const vcByReport = new Map<string, Set<string>>()
 const emailTracking = new Map<string, EmailTracking>()
 const emailByToken = new Map<string, EmailTracking>()
+const simulatorSessions = new Map<string, SimulatorSession>()
 
 export const memoryStore = {
   /* ───── founders ───── */
@@ -100,6 +108,35 @@ export const memoryStore = {
     const ids = vcByReport.get(reportId)
     if (!ids) return []
     return [...ids].map((i) => vcMatches.get(i)!).filter(Boolean)
+  },
+
+  /* ───── founder DNA / network ───── */
+  async listAllFounders(): Promise<Founder[]> {
+    return [...founders.values()]
+  },
+
+  /* ───── simulator sessions ───── */
+  async createSimulatorSession(data: Omit<SimulatorSession, 'id' | 'createdAt'>): Promise<SimulatorSession> {
+    const s: SimulatorSession = { ...data, id: randomUUID(), createdAt: Date.now() }
+    simulatorSessions.set(s.id, s)
+    return s
+  },
+  async listSimulatorSessions(reportId: string): Promise<SimulatorSession[]> {
+    return [...simulatorSessions.values()]
+      .filter((s) => s.reportId === reportId)
+      .sort((a, b) => b.createdAt - a.createdAt)
+  },
+
+  /* ───── community benchmarks ───── */
+  async communityBenchmarks(): Promise<{ avgScore: number; topDecile: number; sampleSize: number }> {
+    const scores = [...reports.values()]
+      .filter((r) => r.status === 'complete' && r.validationScore > 0)
+      .map((r) => r.validationScore)
+    if (scores.length === 0) return { avgScore: 0, topDecile: 0, sampleSize: 0 }
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length
+    const sorted = scores.slice().sort((a, b) => b - a)
+    const topDecile = sorted[Math.floor(sorted.length * 0.1)] || sorted[0]
+    return { avgScore: Math.round(avg * 10) / 10, topDecile, sampleSize: scores.length }
   },
 
   /* ───── email tracking ───── */

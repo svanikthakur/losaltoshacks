@@ -23,6 +23,11 @@ import communityRouter from './routes/community.js'
 import pivotRouter from './routes/pivot.js'
 import trendsRouter from './routes/trends.js'
 import calendarRouter from './routes/calendar.js'
+import dnaRouter from './routes/dna.js'
+import networkRouter from './routes/network.js'
+import simulatorRouter from './routes/simulator.js'
+import timelineRouter from './routes/timeline.js'
+import launchkitRouter from './routes/launchkit.js'
 
 const app = express()
 const server = createServer(app)
@@ -53,6 +58,11 @@ app.use('/api/community', requireAuth, communityRouter)
 app.use('/api/pivot', requireAuth, pivotRouter)
 app.use('/api/trends', requireAuth, trendsRouter)
 app.use('/api/calendar', requireAuth, calendarRouter)
+app.use('/api/dna', requireAuth, dnaRouter)
+app.use('/api/network', requireAuth, networkRouter)
+app.use('/api/simulator', requireAuth, simulatorRouter)
+app.use('/api/timeline', requireAuth, timelineRouter)
+app.use('/api/launchkit', requireAuth, launchkitRouter)
 
 app.use(errorHandler)
 

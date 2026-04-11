@@ -11,7 +11,20 @@ export interface Founder {
   location?: string
   industryFocus?: string
   riskTolerance?: 'low' | 'medium' | 'high'
+  riskScore?: 1 | 2 | 3 | 4 | 5
   networkSize?: number
+  hoursPerWeek?: number
+  priorStartups?: number
+  tier?: 'founder' | 'pro' | 'team'
+  createdAt: number
+}
+
+export interface SimulatorSession {
+  id: string
+  reportId: string
+  questions: Array<{ q: string; rubric: string }>
+  answers: Array<{ a: string; score: number; feedback: string }>
+  finalScore: number
   createdAt: number
 }
 

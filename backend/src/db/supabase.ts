@@ -28,7 +28,11 @@ type FounderRow = {
   location: string | null
   industry_focus: string | null
   risk_tolerance: 'low' | 'medium' | 'high' | null
+  risk_score: number | null
   network_size: number | null
+  hours_per_week: number | null
+  prior_startups: number | null
+  tier: 'founder' | 'pro' | 'team' | null
   created_at: string
 }
 
@@ -61,7 +65,11 @@ const rowToFounder = (r: FounderRow): Founder => ({
   location: r.location ?? undefined,
   industryFocus: r.industry_focus ?? undefined,
   riskTolerance: r.risk_tolerance ?? undefined,
+  riskScore: (r.risk_score as 1 | 2 | 3 | 4 | 5 | null) ?? undefined,
   networkSize: r.network_size ?? undefined,
+  hoursPerWeek: r.hours_per_week ?? undefined,
+  priorStartups: r.prior_startups ?? undefined,
+  tier: r.tier ?? undefined,
   createdAt: new Date(r.created_at).getTime(),
 })
 
@@ -142,6 +150,11 @@ export const supabaseStore: DB = {
     if (patch.location !== undefined) update.location = patch.location
     if (patch.industryFocus !== undefined) update.industry_focus = patch.industryFocus
     if (patch.riskTolerance !== undefined) update.risk_tolerance = patch.riskTolerance
+    if (patch.riskScore !== undefined) update.risk_score = patch.riskScore
+    if (patch.networkSize !== undefined) update.network_size = patch.networkSize
+    if (patch.hoursPerWeek !== undefined) update.hours_per_week = patch.hoursPerWeek
+    if (patch.priorStartups !== undefined) update.prior_startups = patch.priorStartups
+    if (patch.tier !== undefined) update.tier = patch.tier
     if (patch.passwordHash !== undefined) update.password_hash = patch.passwordHash
     const { data: row, error } = await client
       .from('founders')
@@ -312,6 +325,69 @@ export const supabaseStore: DB = {
       thesisMatch: r.thesis_match,
       outreachSentAt: r.outreach_sent_at ? new Date(r.outreach_sent_at).getTime() : undefined,
     })) as VcMatch[]
+  },
+
+  /* ───── network / dna ───── */
+  async listAllFounders() {
+    const { data: rows, error } = await client.from('founders').select('*')
+    if (error) throw new Error(`listAllFounders: ${error.message}`)
+    return (rows || []).map((r) => rowToFounder(r as FounderRow))
+  },
+
+  /* ───── simulator sessions ───── */
+  async createSimulatorSession(data) {
+    const { data: row, error } = await client
+      .from('simulator_sessions')
+      .insert({
+        report_id: data.reportId,
+        questions: data.questions,
+        answers: data.answers,
+        final_score: data.finalScore,
+      })
+      .select()
+      .single()
+    if (error || !row) throw new Error(`createSimulatorSession: ${error?.message}`)
+    const r = row as any
+    return {
+      id: r.id,
+      reportId: r.report_id,
+      questions: r.questions,
+      answers: r.answers,
+      finalScore: r.final_score,
+      createdAt: new Date(r.created_at).getTime(),
+    }
+  },
+  async listSimulatorSessions(reportId) {
+    const { data: rows, error } = await client
+      .from('simulator_sessions')
+      .select('*')
+      .eq('report_id', reportId)
+      .order('created_at', { ascending: false })
+    if (error) throw new Error(`listSimulatorSessions: ${error.message}`)
+    return (rows || []).map((r: any) => ({
+      id: r.id,
+      reportId: r.report_id,
+      questions: r.questions,
+      answers: r.answers,
+      finalScore: r.final_score,
+      createdAt: new Date(r.created_at).getTime(),
+    }))
+  },
+
+  /* ───── community benchmarks ───── */
+  async communityBenchmarks() {
+    const { data: rows, error } = await client
+      .from('reports')
+      .select('validation_score')
+      .eq('status', 'complete')
+      .gt('validation_score', 0)
+    if (error) throw new Error(`communityBenchmarks: ${error.message}`)
+    const scores = (rows || []).map((r: any) => r.validation_score as number)
+    if (scores.length === 0) return { avgScore: 0, topDecile: 0, sampleSize: 0 }
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length
+    const sorted = scores.slice().sort((a, b) => b - a)
+    const topDecile = sorted[Math.floor(sorted.length * 0.1)] || sorted[0]
+    return { avgScore: Math.round(avg * 10) / 10, topDecile, sampleSize: scores.length }
   },
 
   /* ───── email tracking ───── */

@@ -11,11 +11,24 @@ create table if not exists founders (
   password_hash   text,
   skills          text[]   default '{}',
   risk_tolerance  text     check (risk_tolerance in ('low','medium','high')),
+  risk_score      int      check (risk_score between 1 and 5),
   location        text,
   industry_focus  text,
   network_size    int      default 0,
+  hours_per_week  int,
+  prior_startups  int      default 0,
+  tier            text     default 'founder' check (tier in ('founder','pro','team')),
   created_at      timestamptz default now(),
   updated_at      timestamptz default now()
+);
+
+create table if not exists simulator_sessions (
+  id          uuid primary key default uuid_generate_v4(),
+  report_id   uuid references reports(id) on delete cascade,
+  questions   jsonb not null,
+  answers     jsonb not null,
+  final_score int,
+  created_at  timestamptz default now()
 );
 
 -- ───── reports ─────────────────────────────────────────────

@@ -12,6 +12,8 @@ import { runForge } from '../agents/Forge.js'
 import { runDeck } from '../agents/Deck.js'
 import { runConnect } from '../agents/Connect.js'
 import { createReportPage } from '../services/notion.js'
+import { cacheKey, getCached, setCached } from '../services/cache.js'
+import { dnaFromFounder, dnaSignature } from '../services/dnaContext.js'
 
 /** Main pipeline body — agnostic to how it's scheduled. */
 async function executePipeline(reportId: string): Promise<void> {
@@ -33,6 +35,36 @@ async function executePipeline(reportId: string): Promise<void> {
   const pipelineStart = Date.now()
   stage(`▶ START · "${report.ideaText.slice(0, 72)}${report.ideaText.length > 72 ? '…' : ''}"`)
 
+  // Pull operator DNA for prompt personalization + cache key
+  const founder = await db.getFounder(report.founderId)
+  const dna = dnaFromFounder(founder)
+  const sig = dnaSignature(dna)
+  const ckey = cacheKey(report.ideaText, sig)
+
+  // Cache hit: skip Ollama entirely and replay
+  const cached = getCached(ckey)
+  if (cached) {
+    stage('CACHE HIT — replaying previous run')
+    await db.updateReport(reportId, {
+      status: 'running',
+      scout_output: cached.scout,
+      atlas_output: cached.atlas,
+      forge_output: cached.forge,
+      deck_output: cached.deck,
+      connect_output: cached.connect,
+      validationScore: cached.validationScore,
+    })
+    status('scout', 'complete', cached.scout)
+    status('atlas', 'complete', cached.atlas)
+    status('forge', 'complete', cached.forge)
+    status('deck', 'complete', cached.deck)
+    status('connect', 'complete', cached.connect)
+    await db.updateReport(reportId, { status: 'complete' })
+    broadcast(reportId, { type: 'complete' })
+    stage(`✓ PIPELINE COMPLETE (cached) · total ${Date.now() - pipelineStart}ms`)
+    return
+  }
+
   try {
     await db.updateReport(reportId, { status: 'running' })
 
@@ -51,7 +83,7 @@ async function executePipeline(reportId: string): Promise<void> {
     status('atlas', 'running')
     log('atlas', 'Sizing market…')
     const t1 = Date.now()
-    const atlasOut = await runAtlas(report.ideaText, scoutOut)
+    const atlasOut = await runAtlas(report.ideaText, scoutOut, dna)
     await db.updateReport(reportId, {
       atlas_output: atlasOut,
       validationScore: atlasOut.validationScore,
@@ -60,23 +92,27 @@ async function executePipeline(reportId: string): Promise<void> {
     status('atlas', 'complete', atlasOut)
     stage(`Atlas complete (${Date.now() - t1}ms) · score=${atlasOut.validationScore}/10 · TAM=${atlasOut.tam}`)
 
-    /* ───── FORGE (stub) ───── */
-    stage('Forge running…')
+    /* ───── FORGE + DECK in PARALLEL (both depend only on Scout+Atlas) ───── */
+    stage('Forge + Deck running in parallel…')
     status('forge', 'running')
-    log('forge', 'Scaffolding MVP…')
-    const forgeOut = await runForge(report.ideaText, atlasOut)
-    await db.updateReport(reportId, { forge_output: forgeOut, github_repo_url: forgeOut.repoUrl })
-    status('forge', 'complete', forgeOut)
-    stage(`Forge complete · ${forgeOut.repoUrl}`)
-
-    /* ───── DECK (stub) ───── */
-    stage('Deck running…')
     status('deck', 'running')
+    log('forge', 'Scaffolding MVP…')
     log('deck', 'Drafting pitch deck…')
-    const deckOut = await runDeck(reportId, report.ideaText, scoutOut, atlasOut)
-    await db.updateReport(reportId, { deck_output: deckOut, pitch_deck_url: deckOut.pptxUrl, deck_url: deckOut.slidesUrl })
+    const tFD = Date.now()
+    const [forgeOut, deckOut] = await Promise.all([
+      runForge(report.ideaText, atlasOut),
+      runDeck(reportId, report.ideaText, scoutOut, atlasOut),
+    ])
+    await db.updateReport(reportId, {
+      forge_output: forgeOut,
+      github_repo_url: forgeOut.repoUrl,
+      deck_output: deckOut,
+      pitch_deck_url: deckOut.pptxUrl,
+      deck_url: deckOut.slidesUrl,
+    })
+    status('forge', 'complete', forgeOut)
     status('deck', 'complete', deckOut)
-    stage(`Deck complete · ${deckOut.slides.length} slides`)
+    stage(`Forge + Deck complete (${Date.now() - tFD}ms) · ${forgeOut.repoUrl} · ${deckOut.slides.length} slides`)
 
     /* ───── CONNECT (stub) ───── */
     stage('Connect running…')
@@ -86,6 +122,16 @@ async function executePipeline(reportId: string): Promise<void> {
     await db.updateReport(reportId, { connect_output: connectOut, investor_sheet_url: connectOut.sheetsUrl })
     status('connect', 'complete', connectOut)
     stage(`Connect complete · ${connectOut.investors.length} funds ranked`)
+
+    // Cache the full run for 24h, keyed by hash(idea, dna)
+    setCached(ckey, {
+      scout: scoutOut,
+      atlas: atlasOut,
+      forge: forgeOut,
+      deck: deckOut,
+      connect: connectOut,
+      validationScore: atlasOut.validationScore,
+    })
 
     /* ───── NOTION EXPORT (optional, runs if key is set) ───── */
     let notionUrl: string | undefined

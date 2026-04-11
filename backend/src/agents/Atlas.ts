@@ -1,8 +1,10 @@
 /**
  * Atlas — market sizing agent.
  * Consumes Scout's output + the raw idea, returns TAM/SAM/SOM + a validation score 1–10.
+ * Optionally accepts founder DNA for personalized recommendations.
  */
 import { callAgentJSON } from '../services/ai.js'
+import { dnaContextBlock, type DNA } from '../services/dnaContext.js'
 import type { ScoutOutput } from './Scout.js'
 
 export interface AtlasOutput {
@@ -42,13 +44,16 @@ Return ONLY valid JSON (no markdown) with this shape:
 }
 Be realistic — small markets get small numbers. Back your score with reasoning in the summary.`
 
-export async function runAtlas(idea: string, scout: ScoutOutput): Promise<AtlasOutput> {
+export async function runAtlas(idea: string, scout: ScoutOutput, dna?: DNA): Promise<AtlasOutput> {
   const user = `Idea: "${idea}"
 
 Scout dispatch:
 ${JSON.stringify(scout, null, 2)}
 
-Size this market bottom-up. Give a realistic TAM/SAM/SOM and a validation score (1-10) grounded in the Scout data.`
+Size this market bottom-up. Give a realistic TAM/SAM/SOM and a validation score (1-10) grounded in the Scout data.${dna ? dnaContextBlock(dna) : ''}`
 
-  return callAgentJSON<AtlasOutput>('atlas', SYSTEM, user, { temperature: 0.3, timeoutMs: 90_000 })
+  return callAgentJSON<AtlasOutput>('atlas', SYSTEM + (dna ? dnaContextBlock(dna) : ''), user, {
+    temperature: 0.3,
+    timeoutMs: 90_000,
+  })
 }
