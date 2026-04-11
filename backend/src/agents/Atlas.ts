@@ -50,5 +50,5 @@ ${JSON.stringify(scout, null, 2)}
 
 Size this market bottom-up. Give a realistic TAM/SAM/SOM and a validation score (1-10) grounded in the Scout data.`
 
-  return callAgentJSON<AtlasOutput>('atlas', SYSTEM, user, { temperature: 0.3 })
+  return callAgentJSON<AtlasOutput>('atlas', SYSTEM, user, { temperature: 0.3, timeoutMs: 45_000 })
 }

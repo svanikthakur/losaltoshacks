@@ -61,5 +61,5 @@ ${JSON.stringify(ph, null, 2)}
 
 Google Trends: ${JSON.stringify(trends)}`
 
-  return callAgentJSON<ScoutOutput>('scout', SYSTEM, user, { temperature: 0.3 })
+  return callAgentJSON<ScoutOutput>('scout', SYSTEM, user, { temperature: 0.3, timeoutMs: 45_000 })
 }

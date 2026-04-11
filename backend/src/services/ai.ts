@@ -57,9 +57,27 @@ export interface CallOpts {
   temperature?: number
   maxTokens?: number
   jsonMode?: boolean
+  /** Hard ceiling in ms. Defaults to 45000 (45s). */
+  timeoutMs?: number
 }
 
-/** One-shot completion. */
+const DEFAULT_TIMEOUT = 45_000
+
+/** Wrap a promise in a timeout. */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    p.then((v) => {
+      clearTimeout(timer)
+      resolve(v)
+    }).catch((err) => {
+      clearTimeout(timer)
+      reject(err)
+    })
+  })
+}
+
+/** One-shot completion with a hard timeout. */
 export async function callAgent(
   role: AgentRole,
   systemPrompt: string,
@@ -67,17 +85,31 @@ export async function callAgent(
   opts: CallOpts = {},
 ): Promise<string> {
   const model = await pickModel(role)
-  const res = await client.chat.completions.create({
-    model,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userMessage },
-    ],
-    temperature: opts.temperature ?? 0.3,
-    max_tokens: opts.maxTokens ?? 2048,
-    ...(opts.jsonMode ? { response_format: { type: 'json_object' as const } } : {}),
-  })
-  return res.choices[0]?.message?.content ?? ''
+  const timeout = opts.timeoutMs ?? DEFAULT_TIMEOUT
+  const started = Date.now()
+  console.log(`[ai:${role}] → ${model}  (timeout ${timeout}ms)`)
+  try {
+    const res = await withTimeout(
+      client.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+        temperature: opts.temperature ?? 0.3,
+        max_tokens: opts.maxTokens ?? 2048,
+        ...(opts.jsonMode ? { response_format: { type: 'json_object' as const } } : {}),
+      }),
+      timeout,
+      `[ai:${role}]`,
+    )
+    const out = res.choices[0]?.message?.content ?? ''
+    console.log(`[ai:${role}] ← ${out.length} chars in ${Date.now() - started}ms`)
+    return out
+  } catch (err) {
+    console.warn(`[ai:${role}] ✗ ${(err as Error).message}`)
+    throw err
+  }
 }
 
 /** Streaming version. */
@@ -179,8 +211,12 @@ export function extractJSON<T>(raw: string): T {
 }
 
 /**
- * Call + parse JSON, with one retry on malformed output.
- * Always uses Ollama's forced JSON mode on the first attempt.
+ * Call + parse JSON, with TWO retries on malformed output.
+ * Attempt 1: default temp + json mode.
+ * Attempt 2: lower temp + stricter system prompt + json mode.
+ * Attempt 3: minimum temp + even stricter + json mode + example-driven.
+ *
+ * Every attempt has a hard timeout (from opts.timeoutMs or the default 45s).
  */
 export async function callAgentJSON<T>(
   role: AgentRole,
@@ -188,28 +224,41 @@ export async function callAgentJSON<T>(
   userMessage: string,
   opts: CallOpts = {},
 ): Promise<T> {
-  // Attempt 1 — forced JSON mode
-  try {
-    const raw = await callAgent(role, systemPrompt, userMessage, { ...opts, jsonMode: true })
-    return extractJSON<T>(raw)
-  } catch (e1) {
-    console.warn(`[ai:${role}] first attempt failed: ${(e1 as Error).message.slice(0, 200)}`)
-  }
+  const attempts: Array<{ label: string; system: string; temperature: number }> = [
+    { label: 'attempt 1', system: systemPrompt, temperature: opts.temperature ?? 0.3 },
+    {
+      label: 'attempt 2 (stricter)',
+      system:
+        systemPrompt +
+        '\n\nCRITICAL: Your entire response must be a single valid JSON object. ' +
+        'No markdown fences. No commentary. No trailing text. JSON only.',
+      temperature: 0.15,
+    },
+    {
+      label: 'attempt 3 (minimal temp)',
+      system:
+        systemPrompt +
+        '\n\nFINAL WARNING: Emit only a JSON object. Start your response with `{` and end with `}`. ' +
+        'Every string must be properly quoted. Commas only between elements. No trailing commas.',
+      temperature: 0.05,
+    },
+  ]
 
-  // Attempt 2 — stricter system prompt, lower temperature, still json mode
-  const stricter =
-    systemPrompt +
-    '\n\nCRITICAL: Your entire response must be a single valid JSON object. ' +
-    'No markdown fences. No commentary. No trailing text. JSON only.'
-  try {
-    const raw = await callAgent(role, stricter, userMessage, {
-      ...opts,
-      jsonMode: true,
-      temperature: 0.1,
-    })
-    return extractJSON<T>(raw)
-  } catch (e2) {
-    console.error(`[ai:${role}] retry also failed: ${(e2 as Error).message.slice(0, 300)}`)
-    throw e2
+  let lastErr: Error | null = null
+  for (const a of attempts) {
+    try {
+      const raw = await callAgent(role, a.system, userMessage, {
+        ...opts,
+        jsonMode: true,
+        temperature: a.temperature,
+      })
+      const parsed = extractJSON<T>(raw)
+      if (a.label !== 'attempt 1') console.log(`[ai:${role}] recovered on ${a.label}`)
+      return parsed
+    } catch (err) {
+      lastErr = err as Error
+      console.warn(`[ai:${role}] ${a.label} failed: ${(err as Error).message.slice(0, 180)}`)
+    }
   }
+  throw lastErr ?? new Error(`[ai:${role}] all attempts failed`)
 }
