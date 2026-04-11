@@ -1,6 +1,8 @@
 /**
  * In-memory store. Used when SUPABASE_URL is not set (local dev, demos).
- * Shape mirrors the subset of the spec schema the pipeline actually touches.
+ *
+ * All methods are async (return Promises) even though the data lives in a Map.
+ * This keeps the call-site contract identical across the memory + supabase adapters.
  */
 import { randomUUID } from 'crypto'
 import type { Founder, Report, ScoreHistoryEntry, VcMatch, EmailTracking } from '../types/index.js'
@@ -16,19 +18,19 @@ const emailByToken = new Map<string, EmailTracking>()
 
 export const memoryStore = {
   /* ───── founders ───── */
-  createFounder(data: Omit<Founder, 'id' | 'createdAt' | 'skills'>): Founder {
+  async createFounder(data: Omit<Founder, 'id' | 'createdAt' | 'skills'>): Promise<Founder> {
     const f: Founder = { ...data, id: randomUUID(), createdAt: Date.now(), skills: [] }
     founders.set(f.id, f)
     foundersByEmail.set(f.email, f)
     return f
   },
-  getFounder(id: string) {
+  async getFounder(id: string): Promise<Founder | null> {
     return founders.get(id) || null
   },
-  getFounderByEmail(email: string) {
+  async getFounderByEmail(email: string): Promise<Founder | null> {
     return foundersByEmail.get(email) || null
   },
-  updateFounder(id: string, patch: Partial<Founder>) {
+  async updateFounder(id: string, patch: Partial<Founder>): Promise<Founder | null> {
     const f = founders.get(id)
     if (!f) return null
     Object.assign(f, patch)
@@ -36,7 +38,7 @@ export const memoryStore = {
   },
 
   /* ───── reports ───── */
-  createReport(data: { founderId: string; ideaText: string }): Report {
+  async createReport(data: { founderId: string; ideaText: string }): Promise<Report> {
     const r: Report = {
       id: randomUUID(),
       founderId: data.founderId,
@@ -48,31 +50,31 @@ export const memoryStore = {
     reports.set(r.id, r)
     return r
   },
-  getReport(id: string) {
+  async getReport(id: string): Promise<Report | null> {
     return reports.get(id) || null
   },
-  updateReport(id: string, patch: Partial<Report>) {
+  async updateReport(id: string, patch: Partial<Report>): Promise<Report | null> {
     const r = reports.get(id)
     if (!r) return null
     Object.assign(r, patch)
     return r
   },
-  listReportsForFounder(founderId: string): Report[] {
+  async listReportsForFounder(founderId: string): Promise<Report[]> {
     return [...reports.values()]
       .filter((r) => r.founderId === founderId)
       .sort((a, b) => b.createdAt - a.createdAt)
   },
 
   /* ───── score history ───── */
-  insertScoreHistory(reportId: string, score: number) {
+  async insertScoreHistory(reportId: string, score: number): Promise<void> {
     scoreHistory.push({ id: randomUUID(), reportId, score, recordedAt: Date.now() })
   },
-  listScoreHistory(reportId: string): ScoreHistoryEntry[] {
+  async listScoreHistory(reportId: string): Promise<ScoreHistoryEntry[]> {
     return scoreHistory.filter((h) => h.reportId === reportId)
   },
 
   /* ───── vc matches ───── */
-  insertVcMatches(reportId: string, matches: Omit<VcMatch, 'id' | 'reportId'>[]): VcMatch[] {
+  async insertVcMatches(reportId: string, matches: Omit<VcMatch, 'id' | 'reportId'>[]): Promise<VcMatch[]> {
     const inserted: VcMatch[] = matches.map((m) => ({
       ...m,
       id: randomUUID(),
@@ -85,23 +87,23 @@ export const memoryStore = {
     }
     return inserted
   },
-  getVcMatch(id: string) {
+  async getVcMatch(id: string): Promise<VcMatch | null> {
     return vcMatches.get(id) || null
   },
-  updateVcMatch(id: string, patch: Partial<VcMatch>) {
+  async updateVcMatch(id: string, patch: Partial<VcMatch>): Promise<VcMatch | null> {
     const v = vcMatches.get(id)
     if (!v) return null
     Object.assign(v, patch)
     return v
   },
-  listVcMatches(reportId: string): VcMatch[] {
+  async listVcMatches(reportId: string): Promise<VcMatch[]> {
     const ids = vcByReport.get(reportId)
     if (!ids) return []
     return [...ids].map((i) => vcMatches.get(i)!).filter(Boolean)
   },
 
   /* ───── email tracking ───── */
-  createEmailTracking(vcMatchId: string): EmailTracking {
+  async createEmailTracking(vcMatchId: string): Promise<EmailTracking> {
     const e: EmailTracking = {
       id: randomUUID(),
       vcMatchId,
@@ -111,16 +113,16 @@ export const memoryStore = {
     emailByToken.set(e.trackingToken, e)
     return e
   },
-  recordEmailOpen(token: string) {
+  async recordEmailOpen(token: string): Promise<void> {
     const e = emailByToken.get(token)
     if (!e || e.openedAt) return
     e.openedAt = Date.now()
   },
-  listEmailTrackingForReport(reportId: string): EmailTracking[] {
+  async listEmailTrackingForReport(reportId: string): Promise<EmailTracking[]> {
     const ids = vcByReport.get(reportId)
     if (!ids) return []
     return [...emailTracking.values()].filter((t) => ids.has(t.vcMatchId))
   },
 }
 
-export type MemoryStore = typeof memoryStore
+export type DB = typeof memoryStore

@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api, openAgentSocket } from '../lib/api'
+import BorderGlow from '../components/BorderGlow'
 
 const AGENT_DEFS = [
   { key: 'scout', name: 'Scout', tag: 'Market demand' },
@@ -108,47 +109,66 @@ export default function Report() {
 
           {/* Sidebar */}
           <aside className="space-y-6 lg:sticky lg:top-28 self-start">
-            <div className="card overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-3 border-b border-line">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="live-dot" />
-                  <span className="font-medium">Live feed</span>
+            <BorderGlow
+              backgroundColor="#0C0F15"
+              borderRadius={14}
+              glowRadius={36}
+              glowColor="120 100 50"
+              colors={['#00FF41', '#34D399', '#A7F3D0']}
+              edgeSensitivity={20}
+            >
+              <div className="overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3 border-b border-line">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="live-dot" />
+                    <span className="font-medium">Live feed</span>
+                  </div>
+                  <div className="label">websocket</div>
                 </div>
-                <div className="label">websocket</div>
+                <div
+                  ref={logRef}
+                  className="h-72 overflow-y-auto px-5 py-4 font-mono text-xs space-y-1.5"
+                  style={{ background: 'rgba(7,9,13,0.8)' }}
+                >
+                  {logs.length === 0 && <div className="text-muted">Waiting for agents…</div>}
+                  <AnimatePresence initial={false}>
+                    {logs.map((l, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, x: -4 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex gap-2"
+                      >
+                        <span className="text-muted shrink-0">{new Date(l.ts).toLocaleTimeString('en-GB')}</span>
+                        <span className="text-accent shrink-0">{l.agent}</span>
+                        <span className="text-ink-dim">{l.msg}</span>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
               </div>
-              <div
-                ref={logRef}
-                className="h-72 overflow-y-auto px-5 py-4 font-mono text-xs space-y-1.5 bg-base"
-              >
-                {logs.length === 0 && <div className="text-muted">Waiting for agents…</div>}
-                <AnimatePresence initial={false}>
-                  {logs.map((l, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -4 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="flex gap-2"
-                    >
-                      <span className="text-muted shrink-0">{new Date(l.ts).toLocaleTimeString('en-GB')}</span>
-                      <span className="text-accent shrink-0">{l.agent}</span>
-                      <span className="text-ink-dim">{l.msg}</span>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            </div>
+            </BorderGlow>
 
-            <div className="card p-6">
-              <div className="label mb-4">Downloads</div>
-              <div className="space-y-1">
-                <ExportRow label="Validation report" url={report.pdf_report_url} ext="PDF" />
-                <ExportRow label="Market analysis" url={report.pdf_report_url} ext="PDF" />
-                <ExportRow label="Pitch deck" url={report.pitch_deck_url} ext="PPTX" />
-                <ExportRow label="MVP repository" url={report.github_repo_url} ext="GIT" />
-                <ExportRow label="Investor list" url={report.investor_sheet_url} ext="SHEET" />
+            <BorderGlow
+              backgroundColor="#0C0F15"
+              borderRadius={14}
+              glowRadius={36}
+              glowColor="120 100 50"
+              colors={['#00FF41', '#34D399', '#A7F3D0']}
+              edgeSensitivity={20}
+            >
+              <div className="p-6">
+                <div className="label mb-4">Downloads</div>
+                <div className="space-y-1">
+                  <ExportRow label="Validation report" url={report.pdf_report_url} ext="PDF" />
+                  <ExportRow label="Market analysis" url={report.pdf_report_url} ext="PDF" />
+                  <ExportRow label="Pitch deck" url={report.pitch_deck_url} ext="PPTX" />
+                  <ExportRow label="MVP repository" url={report.github_repo_url} ext="GIT" />
+                  <ExportRow label="Investor list" url={report.investor_sheet_url} ext="SHEET" />
+                </div>
               </div>
-            </div>
+            </BorderGlow>
           </aside>
         </div>
       </div>
@@ -170,27 +190,40 @@ function AgentRow({
   const running = status === 'running'
   const done = status === 'complete'
   return (
-    <motion.article
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className={`card p-6 relative ${running ? 'border-accent/40' : ''}`}
     >
-      <div className="flex items-start justify-between gap-6 mb-4">
-        <div>
-          <div className="label mb-2">{String(index + 1).padStart(2, '0')} / {def.tag}</div>
-          <h3 className="font-display text-2xl font-semibold tracking-tight">{def.name}</h3>
-        </div>
-        <StatusPill status={status} />
-      </div>
-      {done && output ? (
-        <AgentOutput agent={def.key} output={output} />
-      ) : running ? (
-        <div className="text-sm text-accent">Running…</div>
-      ) : (
-        <div className="text-sm text-muted">Queued</div>
-      )}
-    </motion.article>
+      <BorderGlow
+        backgroundColor="#0C0F15"
+        borderRadius={14}
+        glowRadius={36}
+        glowColor="120 100 50"
+        colors={['#00FF41', '#34D399', '#A7F3D0']}
+        edgeSensitivity={20}
+        animated={done && index === 0}
+      >
+        <article className={`p-6 relative ${running ? 'ring-1 ring-accent/40' : ''}`}>
+          <div className="flex items-start justify-between gap-6 mb-4">
+            <div>
+              <div className="label mb-2">
+                {String(index + 1).padStart(2, '0')} / {def.tag}
+              </div>
+              <h3 className="font-display text-2xl font-semibold tracking-tight">{def.name}</h3>
+            </div>
+            <StatusPill status={status} />
+          </div>
+          {done && output ? (
+            <AgentOutput agent={def.key} output={output} />
+          ) : running ? (
+            <div className="text-sm text-accent">Running…</div>
+          ) : (
+            <div className="text-sm text-muted">Queued</div>
+          )}
+        </article>
+      </BorderGlow>
+    </motion.div>
   )
 }
 

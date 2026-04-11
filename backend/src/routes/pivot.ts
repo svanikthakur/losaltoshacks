@@ -7,9 +7,9 @@ import { db } from '../db/index.js'
 
 const router = Router()
 
-router.post('/generate', (req, res) => {
+router.post('/generate', async (req, res) => {
   const { reportId } = req.body || {}
-  const r = db.getReport(reportId)
+  const r = await db.getReport(reportId)
   if (!r || r.founderId !== req.founderId) return res.status(404).json({ error: 'Not found' })
   const pivots = (r.atlas_output as { pivots?: string[] } | undefined)?.pivots || []
   res.json({

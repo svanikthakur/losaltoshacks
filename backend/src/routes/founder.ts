@@ -9,8 +9,8 @@ import { db } from '../db/index.js'
 
 const router = Router()
 
-router.get('/profile', (req, res) => {
-  const f = db.getFounder(req.founderId!)
+router.get('/profile', async (req, res) => {
+  const f = await db.getFounder(req.founderId!)
   if (!f) return res.status(404).json({ error: 'Not found' })
   res.json({
     id: f.id,
@@ -23,15 +23,15 @@ router.get('/profile', (req, res) => {
   })
 })
 
-router.patch('/profile', (req, res) => {
+router.patch('/profile', async (req, res) => {
   const { skills, location, industryFocus, riskTolerance } = req.body || {}
-  const f = db.updateFounder(req.founderId!, { skills, location, industryFocus, riskTolerance })
+  const f = await db.updateFounder(req.founderId!, { skills, location, industryFocus, riskTolerance })
   if (!f) return res.status(404).json({ error: 'Not found' })
   res.json(f)
 })
 
-router.get('/validations', (req, res) => {
-  const rs = db.listReportsForFounder(req.founderId!)
+router.get('/validations', async (req, res) => {
+  const rs = await db.listReportsForFounder(req.founderId!)
   // Expose as the shape the frontend already renders
   res.json(
     rs.map((r) => ({

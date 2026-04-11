@@ -3,8 +3,12 @@ import { Link } from 'react-router-dom'
 import Reveal from '../components/Reveal'
 import LiveClock from '../components/LiveClock'
 import BootOverlay from '../components/BootOverlay'
+import Beams from '../components/Beams'
+import HowItWorks from '../components/HowItWorks'
+import Antigravity from '../components/Antigravity'
+import BorderGlow from '../components/BorderGlow'
 
-const SESSION_KEY = 'ac_hero_shown_v4'
+const SESSION_KEY = 'ac_hero_shown_v5'
 
 const HEADLINE_WORDS: Array<{ text: string; accent?: boolean }> = [
   { text: 'TURN' },
@@ -64,7 +68,7 @@ export default function Landing() {
   const [booted, setBooted] = useState(instant)
 
   // Boot overlay dismissal offset — hero delays are relative to boot completion
-  const BOOT_OFFSET = instant ? 0 : 1550
+  const BOOT_OFFSET = instant ? 0 : 3500
 
   return (
     <main className={`relative ${instant ? 'orchestrate-instant' : ''}`}>
@@ -73,8 +77,30 @@ export default function Landing() {
       {/* =========================================================
          HERO — two columns
          ========================================================= */}
-      <section className="shell pt-[96px] md:pt-[128px] pb-20 md:pb-28">
-        <div className="grid grid-cols-12 gap-8 md:gap-12">
+      <section className="relative pt-[96px] md:pt-[128px] pb-20 md:pb-28 overflow-hidden">
+        {/* Three.js beams — animated noise lights, behind everything */}
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            zIndex: 0,
+            opacity: 0.55,
+            maskImage: 'radial-gradient(ellipse 90% 70% at 50% 45%, black 30%, transparent 90%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 90% 70% at 50% 45%, black 30%, transparent 90%)',
+          }}
+        >
+          <Beams
+            beamWidth={3}
+            beamHeight={30}
+            beamNumber={20}
+            lightColor="#00FF41"
+            speed={2}
+            noiseIntensity={1.75}
+            scale={0.2}
+            rotation={30}
+          />
+        </div>
+        <div className="shell relative grid grid-cols-12 gap-8 md:gap-12" style={{ zIndex: 1 }}>
           {/* LEFT — command */}
           <div className="col-span-12 lg:col-span-7">
             <PreLabel instant={instant} bootOffset={BOOT_OFFSET} />
@@ -220,7 +246,7 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-[1px] bg-[var(--color-border-1)] border" style={{ borderColor: 'var(--color-border-1)' }}>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
           {AGENTS.map((a, i) => (
             <Reveal key={a.slug} delay={i * 60}>
               <AgentPanel agent={a} />
@@ -230,167 +256,70 @@ export default function Landing() {
       </section>
 
       {/* =========================================================
-         METHOD
+         HOW IT WORKS — three-step package
          ========================================================= */}
-      <section id="method" className="border-y" style={{ borderColor: 'var(--color-border-1)', background: 'var(--color-surface-1)' }}>
-        <div className="shell py-24 md:py-32">
-          <div className="grid grid-cols-12 gap-6 md:gap-10">
-            <div className="col-span-12 md:col-span-5">
-              <Reveal>
-                <div className="tag mb-4">// METHOD</div>
-              </Reveal>
-              <Reveal delay={80}>
-                <h2
-                  className="font-display font-black uppercase leading-[0.9] tracking-[-0.01em]"
-                  style={{ fontSize: 'clamp(40px, 5.5vw, 84px)' }}
-                >
-                  HOW A DISPATCH
-                  <br />
-                  <span style={{ color: 'var(--color-charge)' }}>GETS FILED.</span>
-                </h2>
-              </Reveal>
-            </div>
-            <div className="col-span-12 md:col-span-7">
-              <ol className="grid grid-cols-1 md:grid-cols-2 gap-[1px] bg-[var(--color-border-1)] border" style={{ borderColor: 'var(--color-border-1)' }}>
-                {[
-                  ['01', 'BRIEF', 'Describe the idea in 2–5 sentences. Name the user. Name the pain. Every word is parsed by every agent.'],
-                  ['02', 'DISPATCH', 'Agents run sequentially over a live WebSocket. Working notes stream to your console in real time.'],
-                  ['03', 'ARTIFACTS', 'Five binaries land: two PDFs, one .pptx, one Git repository, one Google Sheet. Nothing is advice.'],
-                  ['04', 'ITERATE', 'Re-commission with a new angle. History is persistent. The archive is queryable.'],
-                ].map(([n, t, b], i) => (
-                  <Reveal key={n as string} delay={i * 80} as="li">
-                    <div className="p-8 md:p-10 h-full" style={{ background: 'var(--color-void)' }}>
-                      <div className="flex items-start gap-5">
-                        <span
-                          className="font-display font-black"
-                          style={{ fontSize: 32, color: 'var(--color-charge)', lineHeight: 1 }}
-                        >
-                          {n}
-                        </span>
-                        <div>
-                          <div className="font-display font-black text-2xl uppercase tracking-tight mb-3">{t}</div>
-                          <p className="text-[15px] leading-[1.65]" style={{ color: 'var(--color-text-2)' }}>
-                            {b}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </Reveal>
-                ))}
-              </ol>
-            </div>
-          </div>
-        </div>
-      </section>
+      <div id="method" className="border-y" style={{ borderColor: 'var(--color-border-1)', background: 'var(--color-surface-1)' }}>
+        <HowItWorks />
+      </div>
 
       {/* =========================================================
-         PRICING
+         CLOSING — Antigravity particles swarming behind the headline
          ========================================================= */}
-      <section id="pricing" className="shell py-24 md:py-32">
-        <div className="mb-16">
-          <Reveal>
-            <div className="tag mb-4">// ACCESS TIERS</div>
-          </Reveal>
-          <Reveal delay={80}>
-            <h2
-              className="font-display font-black uppercase leading-[0.9] tracking-[-0.01em]"
-              style={{ fontSize: 'clamp(40px, 6vw, 96px)' }}
-            >
-              FREE FOREVER.
-              <br />
-              <span style={{ color: 'var(--color-charge)' }}>NO ASTERISKS.</span>
-            </h2>
-          </Reveal>
+      <section
+        className="relative border-y overflow-hidden"
+        style={{ borderColor: 'var(--color-border-1)', background: 'var(--color-void)' }}
+      >
+        {/* Antigravity canvas — interactive particle swarm */}
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-auto"
+          style={{
+            zIndex: 0,
+            opacity: 0.85,
+            maskImage: 'radial-gradient(ellipse 90% 80% at 50% 50%, black 30%, transparent 90%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 90% 80% at 50% 50%, black 30%, transparent 90%)',
+          }}
+        >
+          <Antigravity
+            count={300}
+            magnetRadius={6}
+            ringRadius={7}
+            waveSpeed={0.4}
+            waveAmplitude={1}
+            particleSize={1.5}
+            lerpSpeed={0.05}
+            color="#00FF41"
+            autoAnimate
+            particleVariance={1}
+            rotationSpeed={0}
+            depthFactor={1}
+            pulseSpeed={3}
+            particleShape="capsule"
+            fieldStrength={10}
+          />
         </div>
 
-        <div className="grid md:grid-cols-3 gap-[1px] bg-[var(--color-border-1)] border" style={{ borderColor: 'var(--color-border-1)' }}>
-          {[
-            {
-              tier: 'FOUNDER',
-              price: '$0',
-              cadence: 'FOREVER',
-              feats: ['UNLIMITED DISPATCHES', 'ALL 5 AGENTS', 'EVERY EXPORT FORMAT', 'PUBLIC ARCHIVE'],
-              cta: 'ACCESS',
-              featured: false,
-            },
-            {
-              tier: 'PRO',
-              price: '$29',
-              cadence: '/MONTH',
-              feats: ['PRIORITY RUNTIME', 'INVESTOR CRM', 'EMAIL TRACKING', 'CO-FOUNDER MATCHES'],
-              cta: 'UPGRADE',
-              featured: true,
-            },
-            {
-              tier: 'TEAM',
-              price: '$99',
-              cadence: '/MONTH',
-              feats: ['5 SEATS', 'SHARED WORKSPACE', 'CUSTOM BRANDING', 'SSO'],
-              cta: 'CONTACT',
-              featured: false,
-            },
-          ].map((p, i) => (
-            <Reveal key={p.tier} delay={i * 80}>
-              <div
-                className="p-8 md:p-10 h-full flex flex-col"
-                style={{
-                  background: 'var(--color-void)',
-                  borderLeft: p.featured ? '2px solid var(--color-charge)' : undefined,
-                }}
-              >
-                {p.featured && <div className="label-hot mb-4">// ACTIVE TIER</div>}
-                {!p.featured && <div className="label mb-4">// TIER 0{i + 1}</div>}
-                <div className="font-display font-black text-4xl uppercase tracking-tight">{p.tier}</div>
-                <div className="mt-4 flex items-baseline gap-2">
-                  <span
-                    className="font-display font-black uppercase"
-                    style={{ fontSize: 56, lineHeight: 1, color: p.featured ? 'var(--color-charge)' : 'var(--color-text-1)' }}
-                  >
-                    {p.price}
-                  </span>
-                  <span className="label">{p.cadence}</span>
-                </div>
-                <ul className="mt-8 space-y-2 flex-1">
-                  {p.feats.map((f) => (
-                    <li key={f} className="label flex items-baseline gap-3" style={{ color: 'var(--color-text-1)' }}>
-                      <span style={{ color: 'var(--color-charge)' }}>&gt;</span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  to="/signup"
-                  data-cursor="link"
-                  className={`mt-8 ${p.featured ? 'btn' : 'btn-ghost'} w-full justify-center`}
-                >
-                  {p.cta} <span className="arrow">↗</span>
-                </Link>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      {/* =========================================================
-         CLOSING
-         ========================================================= */}
-      <section className="border-y" style={{ borderColor: 'var(--color-border-1)', background: 'var(--color-surface-1)' }}>
-        <div className="shell py-32 md:py-44 text-center">
+        <div className="shell relative py-32 md:py-44 text-center pointer-events-none" style={{ zIndex: 1 }}>
           <Reveal>
             <div className="tag mb-6">// INITIALIZE</div>
           </Reveal>
           <Reveal delay={80}>
             <h2
               className="font-display font-black uppercase leading-[0.88] tracking-[-0.01em] max-w-5xl mx-auto"
-              style={{ fontSize: 'clamp(48px, 7vw, 120px)' }}
+              style={{
+                fontSize: 'clamp(48px, 7vw, 120px)',
+                textShadow: '0 0 40px rgba(0,255,65,0.35)',
+              }}
             >
               STOP GOOGLING YOUR THESIS.
               <br />
-              <span style={{ color: 'var(--color-charge)' }}>SHIP THE REPORT.</span>
+              <span style={{ color: 'var(--color-charge)', textShadow: '0 0 60px rgba(0,255,65,0.6)' }}>
+                SHIP THE REPORT.
+              </span>
             </h2>
           </Reveal>
           <Reveal delay={160}>
-            <div className="mt-12">
+            <div className="mt-12 pointer-events-auto">
               <Link to="/signup" data-cursor="link" className="btn">
                 RUN FIRST REPORT <span className="arrow">↗</span>
               </Link>
@@ -720,39 +649,36 @@ function ReadoutLine({ label, value, hot = false }: { label: string; value: stri
    ================================================================ */
 function AgentPanel({ agent }: { agent: (typeof AGENTS)[number] }) {
   return (
-    <div
-      data-cursor="link"
-      className="relative p-8 md:p-10 h-full group transition-colors duration-base"
-      style={{
-        background: 'var(--color-void)',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = 'var(--color-surface-1)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = 'var(--color-void)'
-      }}
+    <BorderGlow
+      backgroundColor="#07090D"
+      borderRadius={2}
+      glowRadius={36}
+      glowColor="120 100 50"
+      colors={['#00FF41', '#34D399', '#A7F3D0']}
+      edgeSensitivity={20}
     >
-      {/* top row — ┌─ 01 SCOUT ─ */}
-      <div className="flex items-center gap-3 mb-6">
-        <span className="font-mono text-[10px] tracking-[0.15em]" style={{ color: 'var(--color-charge)' }}>
-          ┌─ {agent.num} {agent.slug} ─
-        </span>
+      <div data-cursor="link" className="relative p-8 md:p-10 h-full group">
+        {/* top row — ┌─ 01 SCOUT ─ */}
+        <div className="flex items-center gap-3 mb-6">
+          <span className="font-mono text-[10px] tracking-[0.15em]" style={{ color: 'var(--color-charge)' }}>
+            ┌─ {agent.num} {agent.slug} ─
+          </span>
+        </div>
+        <div
+          className="font-display font-black uppercase tracking-[-0.01em] leading-[0.92]"
+          style={{ fontSize: 'clamp(32px, 3vw, 44px)' }}
+        >
+          {agent.role}
+        </div>
+        <div className="h-px bg-accent my-5" style={{ width: 40 }} />
+        <p className="text-[15px] leading-[1.65]" style={{ color: 'var(--color-text-2)' }}>
+          {agent.blurb}
+        </p>
+        <div className="mt-8 flex items-baseline gap-2 font-mono text-[10px] tracking-[0.12em] uppercase">
+          <span style={{ color: 'var(--color-text-3)' }}>OUTPUT →</span>
+          <span style={{ color: 'var(--color-text-1)' }}>{agent.output}</span>
+        </div>
       </div>
-      <div
-        className="font-display font-black uppercase tracking-[-0.01em] leading-[0.92]"
-        style={{ fontSize: 'clamp(32px, 3vw, 44px)' }}
-      >
-        {agent.role}
-      </div>
-      <div className="h-px bg-accent my-5" style={{ width: 40 }} />
-      <p className="text-[15px] leading-[1.65]" style={{ color: 'var(--color-text-2)' }}>
-        {agent.blurb}
-      </p>
-      <div className="mt-8 flex items-baseline gap-2 font-mono text-[10px] tracking-[0.12em] uppercase">
-        <span style={{ color: 'var(--color-text-3)' }}>OUTPUT →</span>
-        <span style={{ color: 'var(--color-text-1)' }}>{agent.output}</span>
-      </div>
-    </div>
+    </BorderGlow>
   )
 }

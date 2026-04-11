@@ -10,18 +10,18 @@ import { schedulePipeline } from '../queue/pipeline.js'
 
 const router = Router()
 
-router.post('/generate', (req, res) => {
+router.post('/generate', async (req, res) => {
   const { idea } = req.body || {}
   if (!idea || typeof idea !== 'string') {
     return res.status(400).json({ error: 'idea required' })
   }
-  const r = db.createReport({ founderId: req.founderId!, ideaText: idea })
+  const r = await db.createReport({ founderId: req.founderId!, ideaText: idea })
   schedulePipeline(r.id)
   res.json({ reportId: r.id })
 })
 
-router.get('/:id', (req, res) => {
-  const r = db.getReport(req.params.id)
+router.get('/:id', async (req, res) => {
+  const r = await db.getReport(req.params.id)
   if (!r || r.founderId !== req.founderId) return res.status(404).json({ error: 'Not found' })
   // Expose the fields the frontend Report.tsx expects.
   res.json({
@@ -45,12 +45,12 @@ router.get('/:id', (req, res) => {
   })
 })
 
-router.get('/:id/score', (req, res) => {
-  const r = db.getReport(req.params.id)
+router.get('/:id/score', async (req, res) => {
+  const r = await db.getReport(req.params.id)
   if (!r || r.founderId !== req.founderId) return res.status(404).json({ error: 'Not found' })
   res.json({
     score: r.validationScore,
-    history: db.listScoreHistory(r.id),
+    history: await db.listScoreHistory(r.id),
   })
 })
 

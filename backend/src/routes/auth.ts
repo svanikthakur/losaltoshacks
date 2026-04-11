@@ -18,15 +18,15 @@ function publicFounder(f: { id: string; email: string; name: string }) {
 router.post('/signup', async (req, res) => {
   const { email, password, name } = req.body || {}
   if (!email || !password || !name) return res.status(400).json({ error: 'Missing fields' })
-  if (db.getFounderByEmail(email)) return res.status(409).json({ error: 'Email already in use' })
+  if (await db.getFounderByEmail(email)) return res.status(409).json({ error: 'Email already in use' })
   const passwordHash = await bcrypt.hash(password, 10)
-  const f = db.createFounder({ email, name, passwordHash })
+  const f = await db.createFounder({ email, name, passwordHash })
   res.json({ token: signFounderToken(f.id), user: publicFounder(f) })
 })
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body || {}
-  const f = db.getFounderByEmail(email)
+  const f = await db.getFounderByEmail(email)
   if (!f) return res.status(401).json({ error: 'Invalid credentials' })
   const ok = await bcrypt.compare(password, f.passwordHash)
   if (!ok) return res.status(401).json({ error: 'Invalid credentials' })

@@ -18,7 +18,7 @@ declare global {
   }
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const h = req.headers.authorization
   if (!h?.startsWith('Bearer ')) {
     res.status(401).json({ error: 'Missing token' })
@@ -26,7 +26,8 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
   try {
     const payload = jwt.verify(h.slice(7), SECRET) as { sub: string }
-    if (!db.getFounder(payload.sub)) {
+    const founder = await db.getFounder(payload.sub)
+    if (!founder) {
       res.status(401).json({ error: 'Unknown founder' })
       return
     }

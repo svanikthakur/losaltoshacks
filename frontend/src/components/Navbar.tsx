@@ -20,13 +20,26 @@ export default function Navbar() {
       }}
     >
       <div className="shell h-full flex items-center justify-between">
-        {/* Wordmark */}
+        {/* Wordmark — bracketed AGENT CONNECT with subtitle */}
         <Link
           to="/"
           data-cursor="link"
-          className="font-mono text-[12px] tracking-[0.2em] text-accent uppercase"
+          className="flex items-baseline gap-2 select-none"
         >
-          AGENTCONNECT_AI
+          <span className="font-mono text-[14px] leading-none" style={{ color: 'var(--color-charge)' }}>
+            [
+          </span>
+          <span className="flex flex-col leading-tight">
+            <span className="font-display font-extrabold tracking-[0.18em] uppercase text-[15px] text-ink">
+              AGENT <span style={{ color: 'var(--color-text-2)' }}>CONNECT</span>
+            </span>
+            <span className="font-mono text-[8px] tracking-[0.25em] uppercase mt-0.5" style={{ color: 'var(--color-text-2)' }}>
+              v2.0 // ai platform
+            </span>
+          </span>
+          <span className="font-mono text-[14px] leading-none" style={{ color: 'var(--color-charge)' }}>
+            ]
+          </span>
         </Link>
 
         {/* Nav links */}
@@ -34,7 +47,6 @@ export default function Navbar() {
           {[
             ['AGENTS', '#agents'],
             ['METHOD', '#method'],
-            ['PRICING', '#pricing'],
             ['RUNTIME', '#runtime'],
           ].map(([label, href]) => (
             <a

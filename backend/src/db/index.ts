@@ -1,21 +1,50 @@
 /**
- * Database entry point. Exports a single `db` object that either:
- *  - wraps a real Supabase client (when SUPABASE_URL is set), or
- *  - delegates to the in-memory store (local dev / demos).
+ * Database entry point.
+ *  - If SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are set AND the preflight check
+ *    confirms the schema is in place, exports the real Supabase adapter.
+ *  - Otherwise falls back to the in-memory store.
  *
- * Same method surface in both cases — routes and the pipeline never know the difference.
+ * Both adapters share the exact same async method surface — routes and the
+ * pipeline never know which one they're talking to.
  */
-import { memoryStore } from './memory.js'
+import { memoryStore, type DB } from './memory.js'
 
 const hasSupabase = !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
 
-if (hasSupabase) {
-  // eslint-disable-next-line no-console
-  console.log('[db] Supabase URL detected — (supabase adapter stub; falling back to memory for now)')
+let _db: DB = memoryStore
+let _mode: 'memory' | 'supabase' = 'memory'
+
+export async function initDB(): Promise<'memory' | 'supabase'> {
+  if (!hasSupabase) {
+    console.log('[db] SUPABASE_URL unset — using in-memory store')
+    return 'memory'
+  }
+  try {
+    const { supabaseStore, supabasePreflight } = await import('./supabase.js')
+    const pre = await supabasePreflight()
+    if (!pre.ok) {
+      console.warn(`[db] Supabase schema check failed: ${pre.reason}`)
+      console.warn('[db] → Go to https://supabase.com/dashboard/project/<ref>/sql/new')
+      console.warn('[db] → Paste backend/src/db/schema.sql and click Run')
+      console.warn('[db] → Falling back to in-memory store')
+      return 'memory'
+    }
+    _db = supabaseStore
+    _mode = 'supabase'
+    console.log('[db] Supabase adapter online')
+    return 'supabase'
+  } catch (err) {
+    console.warn(`[db] Supabase init failed: ${(err as Error).message} — using memory`)
+    return 'memory'
+  }
 }
 
-// TODO: when Supabase is provisioned, implement a thin adapter over @supabase/supabase-js
-// that exposes the same surface as memoryStore. Phase 1 runs against the memory store.
+export const db: DB = new Proxy(memoryStore, {
+  get(_target, prop) {
+    return (_db as any)[prop]
+  },
+}) as DB
 
-export const db = memoryStore
-export type DB = typeof db
+export function dbMode(): 'memory' | 'supabase' {
+  return _mode
+}

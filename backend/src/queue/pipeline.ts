@@ -11,10 +11,11 @@ import { runAtlas } from '../agents/Atlas.js'
 import { runForge } from '../agents/Forge.js'
 import { runDeck } from '../agents/Deck.js'
 import { runConnect } from '../agents/Connect.js'
+import { createReportPage } from '../services/notion.js'
 
 /** Main pipeline body — agnostic to how it's scheduled. */
 async function executePipeline(reportId: string): Promise<void> {
-  const report = db.getReport(reportId)
+  const report = await db.getReport(reportId)
   if (!report) {
     console.warn(`[pipeline ${reportId.slice(0, 8)}] no report row — aborting`)
     return
@@ -33,7 +34,7 @@ async function executePipeline(reportId: string): Promise<void> {
   stage(`▶ START · "${report.ideaText.slice(0, 72)}${report.ideaText.length > 72 ? '…' : ''}"`)
 
   try {
-    db.updateReport(reportId, { status: 'running' })
+    await db.updateReport(reportId, { status: 'running' })
 
     /* ───── SCOUT ───── */
     stage('Scout running…')
@@ -41,7 +42,7 @@ async function executePipeline(reportId: string): Promise<void> {
     log('scout', 'Querying Serper + trends…')
     const t0 = Date.now()
     const scoutOut = await runScout(report.ideaText)
-    db.updateReport(reportId, { scout_output: scoutOut })
+    await db.updateReport(reportId, { scout_output: scoutOut })
     status('scout', 'complete', scoutOut)
     stage(`Scout complete (${Date.now() - t0}ms) · demand=${(scoutOut as any).demandSignal}/${(scoutOut as any).demandScore}`)
 
@@ -51,11 +52,11 @@ async function executePipeline(reportId: string): Promise<void> {
     log('atlas', 'Sizing market…')
     const t1 = Date.now()
     const atlasOut = await runAtlas(report.ideaText, scoutOut)
-    db.updateReport(reportId, {
+    await db.updateReport(reportId, {
       atlas_output: atlasOut,
       validationScore: atlasOut.validationScore,
     })
-    db.insertScoreHistory(reportId, atlasOut.validationScore)
+    await db.insertScoreHistory(reportId, atlasOut.validationScore)
     status('atlas', 'complete', atlasOut)
     stage(`Atlas complete (${Date.now() - t1}ms) · score=${atlasOut.validationScore}/10 · TAM=${atlasOut.tam}`)
 
@@ -64,7 +65,7 @@ async function executePipeline(reportId: string): Promise<void> {
     status('forge', 'running')
     log('forge', 'Scaffolding MVP…')
     const forgeOut = await runForge(report.ideaText, atlasOut)
-    db.updateReport(reportId, { forge_output: forgeOut, github_repo_url: forgeOut.repoUrl })
+    await db.updateReport(reportId, { forge_output: forgeOut, github_repo_url: forgeOut.repoUrl })
     status('forge', 'complete', forgeOut)
     stage(`Forge complete · ${forgeOut.repoUrl}`)
 
@@ -73,7 +74,7 @@ async function executePipeline(reportId: string): Promise<void> {
     status('deck', 'running')
     log('deck', 'Drafting pitch deck…')
     const deckOut = await runDeck(reportId, report.ideaText, scoutOut, atlasOut)
-    db.updateReport(reportId, { deck_output: deckOut, pitch_deck_url: deckOut.pptxUrl, deck_url: deckOut.slidesUrl })
+    await db.updateReport(reportId, { deck_output: deckOut, pitch_deck_url: deckOut.pptxUrl, deck_url: deckOut.slidesUrl })
     status('deck', 'complete', deckOut)
     stage(`Deck complete · ${deckOut.slides.length} slides`)
 
@@ -82,11 +83,33 @@ async function executePipeline(reportId: string): Promise<void> {
     status('connect', 'running')
     log('connect', 'Ranking investors…')
     const connectOut = await runConnect(reportId, report.ideaText, atlasOut)
-    db.updateReport(reportId, { connect_output: connectOut, investor_sheet_url: connectOut.sheetsUrl })
+    await db.updateReport(reportId, { connect_output: connectOut, investor_sheet_url: connectOut.sheetsUrl })
     status('connect', 'complete', connectOut)
     stage(`Connect complete · ${connectOut.investors.length} funds ranked`)
 
-    db.updateReport(reportId, {
+    /* ───── NOTION EXPORT (optional, runs if key is set) ───── */
+    let notionUrl: string | undefined
+    if (process.env.NOTION_API_KEY && process.env.NOTION_TEMPLATE_PAGE_ID) {
+      try {
+        stage('Notion export running…')
+        log('notion', 'Filing dispatch to Notion…')
+        notionUrl = await createReportPage({
+          idea: report.ideaText,
+          validationScore: atlasOut.validationScore,
+          scout: scoutOut,
+          atlas: atlasOut,
+          forge: forgeOut,
+          deck: deckOut,
+          connect: connectOut,
+        })
+        await db.updateReport(reportId, { notion_url: notionUrl })
+        stage(`Notion export complete · ${notionUrl}`)
+      } catch (err) {
+        console.warn(`[pipeline ${short}] Notion export failed: ${(err as Error).message}`)
+      }
+    }
+
+    await db.updateReport(reportId, {
       status: 'complete',
       pdf_report_url: `https://storage.agentconnect.dev/reports/${reportId}.pdf`,
     })
@@ -95,7 +118,7 @@ async function executePipeline(reportId: string): Promise<void> {
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'pipeline failed'
     console.error(`[pipeline ${short}] ✗ FAILED: ${msg}`)
-    db.updateReport(reportId, { status: 'failed' })
+    await db.updateReport(reportId, { status: 'failed' })
     broadcast(reportId, { type: 'error', msg })
   }
 }
