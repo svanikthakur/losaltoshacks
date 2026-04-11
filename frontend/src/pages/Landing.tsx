@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Reveal from '../components/Reveal'
 import LiveClock from '../components/LiveClock'
+import BootOverlay from '../components/BootOverlay'
 
 const SESSION_KEY = 'ac_hero_shown_v4'
 
@@ -60,9 +61,15 @@ export default function Landing() {
     sessionStorage.setItem(SESSION_KEY, '1')
     return seen
   })
+  const [booted, setBooted] = useState(instant)
+
+  // Boot overlay dismissal offset — hero delays are relative to boot completion
+  const BOOT_OFFSET = instant ? 0 : 1550
 
   return (
     <main className={`relative ${instant ? 'orchestrate-instant' : ''}`}>
+      {!booted && <BootOverlay onDone={() => setBooted(true)} />}
+      {!instant && <div className="scan-sweep" />}
       {/* =========================================================
          HERO — two columns
          ========================================================= */}
@@ -70,14 +77,14 @@ export default function Landing() {
         <div className="grid grid-cols-12 gap-8 md:gap-12">
           {/* LEFT — command */}
           <div className="col-span-12 lg:col-span-7">
-            <PreLabel instant={instant} />
+            <PreLabel instant={instant} bootOffset={BOOT_OFFSET} />
 
             <h1
-              className="font-display font-black leading-[0.85] uppercase tracking-[-0.01em] mt-6"
-              style={{ fontSize: 'clamp(56px, 9vw, 148px)', color: 'var(--color-text-1)' }}
+              className={`font-display font-black leading-[0.85] uppercase tracking-[-0.01em] mt-6 ${booted ? 'anim-glitch' : ''}`}
+              style={{ fontSize: 'clamp(56px, 9vw, 148px)', color: 'var(--color-text-1)', animationDelay: `${BOOT_OFFSET + 850}ms` }}
             >
               {HEADLINE_WORDS.map((w, i) => (
-                <HeadlineWord key={i} index={i} accent={w.accent} instant={instant}>
+                <HeadlineWord key={i} index={i} accent={w.accent} instant={instant} bootOffset={BOOT_OFFSET}>
                   {w.text}
                 </HeadlineWord>
               ))}
@@ -87,7 +94,7 @@ export default function Landing() {
               className="mt-8 text-lg leading-[1.65] max-w-md anim-clip-wipe"
               style={{
                 color: 'var(--color-text-2)',
-                animationDelay: instant ? '0ms' : '1300ms',
+                animationDelay: instant ? '0ms' : `${BOOT_OFFSET + 1300}ms`,
               }}
             >
               Five specialist agents interrogate your thesis in parallel. A pitch deck, MVP repository, market report and ranked investor list — in under ten minutes.
@@ -97,7 +104,7 @@ export default function Landing() {
               <Link
                 to="/signup"
                 className="btn anim-fade-up"
-                style={{ animationDelay: instant ? '0ms' : '1450ms' }}
+                style={{ animationDelay: instant ? '0ms' : `${BOOT_OFFSET + 1450}ms` }}
                 data-cursor="link"
               >
                 RUN REPORT <span className="arrow">↗</span>
@@ -105,7 +112,7 @@ export default function Landing() {
               <a
                 href="#agents"
                 className="btn-ghost anim-fade-up"
-                style={{ animationDelay: instant ? '0ms' : '1530ms' }}
+                style={{ animationDelay: instant ? '0ms' : `${BOOT_OFFSET + 1530}ms` }}
                 data-cursor="link"
               >
                 VIEW DEMO
@@ -117,9 +124,9 @@ export default function Landing() {
           <div className="col-span-12 lg:col-span-5">
             <div
               className="anim-slide-right"
-              style={{ animationDelay: instant ? '0ms' : '1600ms' }}
+              style={{ animationDelay: instant ? '0ms' : `${BOOT_OFFSET + 1600}ms` }}
             >
-              <Terminal instant={instant} />
+              <Terminal instant={instant} bootOffset={BOOT_OFFSET} />
             </div>
           </div>
         </div>
@@ -421,7 +428,7 @@ export default function Landing() {
 /* ================================================================
    PreLabel — typewriter SYS label
    ================================================================ */
-function PreLabel({ instant }: { instant: boolean }) {
+function PreLabel({ instant, bootOffset = 0 }: { instant: boolean; bootOffset?: number }) {
   const text = 'SYS: VALIDATION_ENGINE_V3 // ONLINE'
   const [out, setOut] = useState(instant ? text : '')
   const [done, setDone] = useState(instant)
@@ -442,9 +449,9 @@ function PreLabel({ instant }: { instant: boolean }) {
         else setDone(true)
       }
       step()
-    }, 150)
+    }, 150 + bootOffset)
     return () => clearTimeout(start)
-  }, [instant])
+  }, [instant, bootOffset])
 
   return (
     <div
@@ -464,13 +471,15 @@ function HeadlineWord({
   index,
   accent,
   instant,
+  bootOffset = 0,
 }: {
   children: React.ReactNode
   index: number
   accent?: boolean
   instant: boolean
+  bootOffset?: number
 }) {
-  const delay = instant ? 0 : 850 + index * 50
+  const delay = instant ? 0 : bootOffset + 850 + index * 50
   return (
     <span className="inline-block overflow-hidden align-top mr-[0.3em]">
       <span
@@ -478,6 +487,7 @@ function HeadlineWord({
         style={{
           animationDelay: `${delay}ms`,
           color: accent ? 'var(--color-charge)' : undefined,
+          textShadow: accent ? '0 0 24px rgba(0,255,65,0.45)' : undefined,
           position: 'relative',
         }}
       >
@@ -490,7 +500,8 @@ function HeadlineWord({
               bottom: 6,
               height: 2,
               background: 'var(--color-charge)',
-              animationDelay: `${instant ? 0 : 1400}ms`,
+              boxShadow: '0 0 12px var(--color-charge)',
+              animationDelay: `${instant ? 0 : bootOffset + 1400}ms`,
             }}
           />
         )}
@@ -504,7 +515,7 @@ function HeadlineWord({
    ================================================================ */
 type AgentState = 'complete' | 'running' | 'queued'
 
-function Terminal({ instant }: { instant: boolean }) {
+function Terminal({ instant, bootOffset = 0 }: { instant: boolean; bootOffset?: number }) {
   const [progress, setProgress] = useState<Record<string, number>>({
     scout: 0,
     atlas: 0,
@@ -526,7 +537,7 @@ function Terminal({ instant }: { instant: boolean }) {
   useEffect(() => {
     if (started.current) return
     started.current = true
-    const base = instant ? 0 : 1900
+    const base = instant ? 0 : 1900 + bootOffset
 
     // Scout fills to 100, completes
     setTimeout(() => {
@@ -556,7 +567,7 @@ function Terminal({ instant }: { instant: boolean }) {
       }
       requestAnimationFrame(tick)
     }, base + 400)
-  }, [instant])
+  }, [instant, bootOffset])
 
   // Dots animation on running row
   useEffect(() => {
