@@ -2,8 +2,49 @@
  * FeatureHub — grid of AI-powered tools shown at the bottom of every report.
  * Each card triggers a real backend endpoint and renders the result inline.
  */
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { api } from '../lib/api'
+
+const SpeechRecognition = typeof window !== 'undefined'
+  ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+  : null
+
+function useVoiceInput() {
+  const [recording, setRecording] = useState(false)
+  const [transcript, setTranscript] = useState('')
+  const recRef = useRef<any>(null)
+
+  const supported = !!SpeechRecognition
+
+  const start = () => {
+    if (!SpeechRecognition) return
+    const rec = new SpeechRecognition()
+    rec.continuous = true
+    rec.interimResults = true
+    rec.lang = 'en-US'
+    let final = ''
+    rec.onresult = (e: any) => {
+      let interim = ''
+      for (let i = 0; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final += e.results[i][0].transcript + ' '
+        else interim += e.results[i][0].transcript
+      }
+      setTranscript((final + interim).trim())
+    }
+    rec.onerror = () => setRecording(false)
+    rec.onend = () => setRecording(false)
+    recRef.current = rec
+    rec.start()
+    setRecording(true)
+  }
+
+  const stop = () => {
+    recRef.current?.stop()
+    setRecording(false)
+  }
+
+  return { recording, transcript, supported, start, stop, setTranscript }
+}
 
 interface Props {
   reportId: string
@@ -39,7 +80,7 @@ export default function FeatureHub({ reportId, competitors }: Props) {
         <MarketPulse reportId={reportId} />
         <CohortBenchmark reportId={reportId} />
         <DownloadReports reportId={reportId} />
-        <ComingSoon label="Voice Pitch Coach" desc="Record your 60s pitch and get AI scoring" />
+        <VoicePitchCoach reportId={reportId} />
         <ComingSoon label="Warm Intro Mapper" desc="Map LinkedIn paths to target VCs" />
       </div>
     </div>
@@ -273,13 +314,14 @@ function CompetitorDive({ reportId, competitors }: { reportId: string; competito
   )
 }
 
-/* ─── Co-Founder Sim ─── */
+/* ─── Co-Founder Sim (voice-enabled) ─── */
 function CoFounderSim({ reportId }: { reportId: string }) {
   const [state, setState] = useState<ToolState>('idle')
   const [questions, setQuestions] = useState<any[]>([])
   const [answers, setAnswers] = useState<string[]>([])
   const [result, setResult] = useState<any>(null)
   const [phase, setPhase] = useState<'start' | 'answer' | 'scored'>('start')
+  const [activeVoice, setActiveVoice] = useState<number | null>(null)
 
   const startSim = async () => {
     setState('loading')
@@ -303,29 +345,28 @@ function CoFounderSim({ reportId }: { reportId: string }) {
   }
 
   return (
-    <Card label="Co-Founder Pitch Sim" desc="Roleplay a co-founder recruitment conversation" state={phase === 'start' ? state : 'done'} onRun={startSim} accent="#F472B6">
+    <Card label="Co-Founder Pitch Sim" desc="Roleplay with voice or text — AI scores your answers" state={phase === 'start' ? state : 'done'} onRun={startSim} accent="#F472B6">
       {phase === 'answer' && (
         <div className="space-y-3">
           {questions.map((q: any, i: number) => (
-            <div key={i}>
-              <div className="text-xs text-ink mb-1 font-medium">{q.q}</div>
-              <textarea
-                className="w-full text-xs rounded px-2 py-1.5 resize-none"
-                style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-1)', border: '1px solid var(--color-border-1)' }}
-                rows={2}
-                value={answers[i]}
-                onChange={(e) => {
-                  const next = [...answers]
-                  next[i] = e.target.value
-                  setAnswers(next)
-                }}
-                placeholder="Your answer..."
-              />
-            </div>
+            <VoiceAnswerField
+              key={i}
+              question={q.q}
+              value={answers[i]}
+              onChange={(v) => {
+                const next = [...answers]
+                next[i] = v
+                setAnswers(next)
+              }}
+              isActiveVoice={activeVoice === i}
+              onVoiceStart={() => setActiveVoice(i)}
+              onVoiceStop={() => setActiveVoice(null)}
+            />
           ))}
           <button
             onClick={scoreSim}
-            className="w-full font-mono text-[10px] uppercase tracking-[0.15em] py-2 rounded"
+            disabled={answers.every((a) => !a.trim())}
+            className="w-full font-mono text-[10px] uppercase tracking-[0.15em] py-2.5 rounded transition disabled:opacity-30"
             style={{ background: '#F472B6', color: 'var(--color-void)' }}
           >
             Score my answers →
@@ -344,6 +385,87 @@ function CoFounderSim({ reportId }: { reportId: string }) {
         </div>
       )}
     </Card>
+  )
+}
+
+function VoiceAnswerField({
+  question,
+  value,
+  onChange,
+  isActiveVoice,
+  onVoiceStart,
+  onVoiceStop,
+}: {
+  question: string
+  value: string
+  onChange: (v: string) => void
+  isActiveVoice: boolean
+  onVoiceStart: () => void
+  onVoiceStop: () => void
+}) {
+  const voice = useVoiceInput()
+
+  const toggleVoice = () => {
+    if (voice.recording) {
+      voice.stop()
+      onVoiceStop()
+      if (voice.transcript) onChange(voice.transcript)
+    } else {
+      voice.setTranscript(value)
+      voice.start()
+      onVoiceStart()
+    }
+  }
+
+  // Sync live transcript into the field while recording
+  const displayValue = voice.recording ? voice.transcript : value
+
+  return (
+    <div>
+      <div className="text-xs text-ink mb-1.5 font-medium leading-snug">{question}</div>
+      <div className="relative">
+        <textarea
+          className="w-full text-xs rounded px-2 py-1.5 pr-10 resize-none"
+          style={{
+            background: voice.recording ? 'rgba(244,114,182,0.08)' : 'var(--color-surface-2)',
+            color: 'var(--color-text-1)',
+            border: voice.recording ? '1px solid #F472B6' : '1px solid var(--color-border-1)',
+          }}
+          rows={3}
+          value={displayValue}
+          onChange={(e) => {
+            onChange(e.target.value)
+            voice.setTranscript(e.target.value)
+          }}
+          placeholder="Type or click mic to speak..."
+        />
+        {voice.supported && (
+          <button
+            onClick={toggleVoice}
+            className="absolute right-2 top-2 w-6 h-6 rounded-full flex items-center justify-center transition"
+            style={{
+              background: voice.recording ? '#F472B6' : 'var(--color-surface-3)',
+              color: voice.recording ? 'white' : 'var(--color-text-2)',
+            }}
+            title={voice.recording ? 'Stop recording' : 'Start voice input'}
+          >
+            {voice.recording ? (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2" /></svg>
+            ) : (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+            )}
+          </button>
+        )}
+      </div>
+      {voice.recording && (
+        <div className="flex items-center gap-2 mt-1">
+          <span className="w-2 h-2 rounded-full bg-[#F472B6] animate-pulse" />
+          <span className="font-mono text-[9px] uppercase tracking-[0.15em]" style={{ color: '#F472B6' }}>
+            listening…
+          </span>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -418,6 +540,197 @@ function CohortBenchmark({ reportId }: { reportId: string }) {
         </div>
       )}
     </Card>
+  )
+}
+
+/* ─── Voice Pitch Coach ─── */
+function VoicePitchCoach({ reportId }: { reportId: string }) {
+  const voice = useVoiceInput()
+  const [state, setState] = useState<ToolState>('idle')
+  const [result, setResult] = useState<any>(null)
+  const [phase, setPhase] = useState<'idle' | 'recording' | 'review' | 'scored'>('idle')
+  const [seconds, setSeconds] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const startRecording = () => {
+    voice.setTranscript('')
+    voice.start()
+    setPhase('recording')
+    setSeconds(0)
+    timerRef.current = setInterval(() => {
+      setSeconds((s) => {
+        if (s >= 59) {
+          stopRecording()
+          return 60
+        }
+        return s + 1
+      })
+    }, 1000)
+  }
+
+  const stopRecording = () => {
+    voice.stop()
+    if (timerRef.current) clearInterval(timerRef.current)
+    timerRef.current = null
+    setPhase('review')
+  }
+
+  const scorePitch = async () => {
+    if (!voice.transcript.trim()) return
+    setState('loading')
+    setPhase('scored')
+    try {
+      const r = await api.abHeadlines(reportId)
+      const res = await fetch('/api/features/voice-coach', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${localStorage.getItem('ac_token')}`,
+        },
+        body: JSON.stringify({ reportId, transcript: voice.transcript }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setResult(data)
+      } else {
+        setResult({ clarityScore: 0, confidenceScore: 0, structureScore: 0, overallScore: 0, feedback: 'Scoring service unavailable.', lineByLine: [] })
+      }
+      setState('done')
+    } catch {
+      setState('error')
+    }
+  }
+
+  if (!voice.supported) {
+    return <ComingSoon label="Voice Pitch Coach" desc="Your browser doesn't support speech recognition. Try Chrome or Edge." />
+  }
+
+  return (
+    <div
+      className="rounded-xl border p-5 flex flex-col"
+      style={{
+        borderColor: phase === 'recording' ? '#EF4444' : 'var(--color-border-1)',
+        background: phase === 'recording' ? 'rgba(239,68,68,0.06)' : 'var(--color-surface-1)',
+      }}
+    >
+      <div className="font-mono text-[9px] uppercase tracking-[0.18em] mb-1" style={{ color: '#EF4444' }}>
+        Voice pitch coach
+      </div>
+      <div className="text-sm text-ink-dim mb-4">Record your 60s pitch — AI scores clarity, confidence & structure</div>
+
+      {phase === 'idle' && (
+        <button
+          onClick={startRecording}
+          className="w-full font-mono text-[10px] uppercase tracking-[0.15em] py-2.5 rounded flex items-center justify-center gap-2"
+          style={{ background: '#EF4444', color: 'white' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+          Start recording →
+        </button>
+      )}
+
+      {phase === 'recording' && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-[#EF4444] animate-pulse" />
+              <span className="font-mono text-sm" style={{ color: '#EF4444' }}>
+                {seconds}s / 60s
+              </span>
+            </div>
+            <div className="h-1.5 flex-1 mx-4 rounded-full bg-white/10 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${(seconds / 60) * 100}%`, background: '#EF4444' }}
+              />
+            </div>
+          </div>
+          <div className="text-xs text-ink-dim min-h-[60px] italic">
+            {voice.transcript || 'Speak now...'}
+          </div>
+          <button
+            onClick={stopRecording}
+            className="w-full font-mono text-[10px] uppercase tracking-[0.15em] py-2 rounded"
+            style={{ border: '1px solid #EF4444', color: '#EF4444' }}
+          >
+            Stop recording
+          </button>
+        </div>
+      )}
+
+      {phase === 'review' && (
+        <div className="space-y-3">
+          <div className="text-xs text-ink-dim italic min-h-[40px]">
+            "{voice.transcript || '(no speech detected)'}"
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={startRecording}
+              className="flex-1 font-mono text-[10px] uppercase tracking-[0.15em] py-2 rounded"
+              style={{ border: '1px solid var(--color-border-1)', color: 'var(--color-text-2)' }}
+            >
+              Re-record
+            </button>
+            <button
+              onClick={scorePitch}
+              disabled={!voice.transcript.trim()}
+              className="flex-1 font-mono text-[10px] uppercase tracking-[0.15em] py-2 rounded disabled:opacity-30"
+              style={{ background: '#EF4444', color: 'white' }}
+            >
+              Score my pitch →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {phase === 'scored' && state === 'loading' && (
+        <div className="text-center font-mono text-[10px] uppercase tracking-[0.15em] py-4 animate-pulse" style={{ color: '#EF4444' }}>
+          analyzing your pitch…
+        </div>
+      )}
+
+      {phase === 'scored' && result && (
+        <div className="text-xs space-y-3">
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: 'Clarity', score: result.clarityScore },
+              { label: 'Confidence', score: result.confidenceScore },
+              { label: 'Structure', score: result.structureScore },
+            ].map((d) => (
+              <div key={d.label} className="text-center">
+                <div className="font-mono text-[9px] text-muted uppercase">{d.label}</div>
+                <div className="font-display text-lg font-bold" style={{ color: d.score >= 7 ? '#00FF41' : d.score >= 5 ? '#FBBF24' : '#FB7185' }}>
+                  {d.score}/10
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="text-center">
+            <div className="font-mono text-[9px] text-muted uppercase">Overall</div>
+            <div className="font-display text-2xl font-bold" style={{ color: result.overallScore >= 7 ? '#00FF41' : result.overallScore >= 5 ? '#FBBF24' : '#FB7185' }}>
+              {result.overallScore}/10
+            </div>
+          </div>
+          {result.feedback && <div className="text-ink-dim italic">{result.feedback}</div>}
+          {result.lineByLine?.length > 0 && (
+            <div className="space-y-1 mt-2">
+              {result.lineByLine.map((l: any, i: number) => (
+                <div key={i} className="text-ink-dim">
+                  <span className="text-accent">›</span> {l}
+                </div>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={() => { setPhase('idle'); setResult(null); setState('idle') }}
+            className="w-full font-mono text-[10px] uppercase tracking-[0.15em] py-2 rounded mt-2"
+            style={{ border: '1px solid var(--color-border-1)', color: 'var(--color-text-2)' }}
+          >
+            Try again
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 

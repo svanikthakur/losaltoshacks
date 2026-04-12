@@ -13,7 +13,7 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
 
-export type AgentRole = 'scout' | 'atlas' | 'forge' | 'deck' | 'connect' | 'pivot' | 'simulator'
+export type AgentRole = 'scout' | 'atlas' | 'forge' | 'deck' | 'connect' | 'pivot' | 'simulator' | 'voice-coach' | 'features'
 
 const MODEL: Record<AgentRole, string> = {
   scout: 'gpt-4o-mini',
@@ -23,6 +23,8 @@ const MODEL: Record<AgentRole, string> = {
   connect: 'gpt-4o-mini',
   pivot: 'gpt-4o-mini',
   simulator: 'gpt-4o-mini',
+  'voice-coach': 'gpt-4o-mini',
+  features: 'gpt-4o-mini',
 }
 
 export interface CallOpts {

@@ -216,8 +216,53 @@ router.post('/warm-intro', async (_req, res) => {
   res.status(501).json({ error: 'Coming soon — requires LinkedIn OAuth / browser audio' })
 })
 
-router.post('/voice-coach', async (_req, res) => {
-  res.status(501).json({ error: 'Coming soon — requires LinkedIn OAuth / browser audio' })
+router.post('/voice-coach', async (req, res, next) => {
+  try {
+    const { reportId, transcript } = req.body || {}
+    if (!transcript || typeof transcript !== 'string' || transcript.trim().length < 10) {
+      return res.status(400).json({ error: 'transcript required (min 10 chars)' })
+    }
+    const r = reportId ? await db.getReport(reportId) : null
+    const ideaContext = r ? `The startup idea: "${r.ideaText}"` : ''
+
+    const result = await callAgentJSON<{
+      clarityScore: number
+      confidenceScore: number
+      structureScore: number
+      overallScore: number
+      feedback: string
+      lineByLine: string[]
+    }>(
+      'voice-coach',
+      `You are a pitch coach scoring a founder's spoken elevator pitch.
+Score on three axes (1-10 each):
+- clarity: how clear and jargon-free is the message?
+- confidence: does the speaker sound certain and commanding?
+- structure: does the pitch follow problem → solution → traction → ask?
+
+Return ONLY JSON:
+{
+  "clarityScore": number (1-10),
+  "confidenceScore": number (1-10),
+  "structureScore": number (1-10),
+  "overallScore": number (1-10, weighted average),
+  "feedback": string (2-3 sentences — what worked, what didn't),
+  "lineByLine": string[] (3-5 specific suggestions keyed to phrases from the transcript)
+}
+Be honest. Most founders score 4-6. Reserve 8+ for genuinely polished pitches.`,
+      `${ideaContext}
+
+Here is the founder's spoken pitch transcript (recorded via browser speech recognition):
+
+"${transcript}"
+
+Score this pitch.`,
+      { temperature: 0.3, timeoutMs: 30_000 },
+    )
+    res.json(result)
+  } catch (err) {
+    next(err)
+  }
 })
 
 export default router

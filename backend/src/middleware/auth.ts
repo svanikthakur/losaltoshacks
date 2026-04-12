@@ -20,12 +20,14 @@ declare global {
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const h = req.headers.authorization
-  if (!h?.startsWith('Bearer ')) {
+  const qToken = req.query.token as string | undefined
+  const raw = h?.startsWith('Bearer ') ? h.slice(7) : qToken
+  if (!raw) {
     res.status(401).json({ error: 'Missing token' })
     return
   }
   try {
-    const payload = jwt.verify(h.slice(7), SECRET) as { sub: string }
+    const payload = jwt.verify(raw, SECRET) as { sub: string }
     const founder = await db.getFounder(payload.sub)
     if (!founder) {
       res.status(401).json({ error: 'Unknown founder' })
