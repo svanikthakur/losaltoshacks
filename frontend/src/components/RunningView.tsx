@@ -188,7 +188,7 @@ function AgentCard({ def, status }: { def: (typeof AGENT_DEFS)[number]; status: 
 
   const width = done ? '100%' : errored ? '100%' : running ? '85%' : '0%'
   const barColor = errored ? '#FB7185' : 'var(--color-charge)'
-  const barDuration = done ? 0.5 : running ? 30 : 0.3
+  const barDuration = done ? 0.4 : running ? 8 : 0.2
 
   return (
     <BorderGlow

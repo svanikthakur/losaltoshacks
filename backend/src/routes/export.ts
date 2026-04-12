@@ -6,6 +6,7 @@ import { Router } from 'express'
 import fs from 'fs'
 import { db } from '../db/index.js'
 import { generateValidationReport, generateMarketResearch } from '../services/pdfGenerator.js'
+import { deployLandingPage } from '../services/vercel.js'
 
 const router = Router()
 
@@ -51,8 +52,54 @@ router.post('/github', async (req, res) => {
   res.json({ url: r.github_repo_url })
 })
 
-router.post('/vercel', (_req, res) => {
-  res.status(501).json({ error: 'Phase 3: vercel deploy not yet implemented' })
+router.post('/vercel', async (req, res, next) => {
+  try {
+    const r = await guard(req, res)
+    if (!r) return
+
+    const launchkit = r.connect_output ? null : null
+    let html = ''
+    let projectName = 'landing'
+
+    const lk = (r as any).launchkit_output as { landingHtml?: string; tagline?: string } | undefined
+    if (lk?.landingHtml) {
+      html = lk.landingHtml
+      projectName = (lk.tagline || r.ideaText).slice(0, 40)
+    } else {
+      const deck = r.deck_output as { startupName?: string; oneLiner?: string } | undefined
+      const atlas = r.atlas_output as { tam?: string; summary?: string } | undefined
+      projectName = deck?.startupName || r.ideaText.slice(0, 30)
+      html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${deck?.startupName || 'AgentConnect Landing'}</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head><body class="bg-gray-950 text-white min-h-screen flex flex-col">
+<header class="py-6 px-8 border-b border-white/10">
+<div class="max-w-4xl mx-auto flex items-center justify-between">
+<span class="text-xl font-bold">${deck?.startupName || 'Startup'}</span>
+<a href="#waitlist" class="px-4 py-2 bg-white text-black rounded-full text-sm font-medium">Get Early Access</a>
+</div></header>
+<main class="flex-1 flex items-center justify-center px-8">
+<div class="max-w-2xl text-center py-20">
+<h1 class="text-5xl font-bold leading-tight mb-6">${deck?.oneLiner || r.ideaText}</h1>
+<p class="text-lg text-gray-400 mb-8 max-w-xl mx-auto">${atlas?.summary || 'Validated by AgentConnect — 5 AI agents analyzed this opportunity.'}</p>
+<p class="text-sm text-gray-500 mb-2">TAM: ${atlas?.tam || '—'}</p>
+<div id="waitlist" class="mt-8 flex gap-2 justify-center">
+<input type="email" placeholder="you@email.com" class="px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white w-64 text-sm">
+<button class="px-6 py-3 bg-white text-black rounded-lg font-medium text-sm">Join Waitlist</button>
+</div></div></main>
+<footer class="py-6 px-8 border-t border-white/10 text-center text-xs text-gray-600">
+Built with AgentConnect
+</footer></body></html>`
+    }
+
+    const result = await deployLandingPage(projectName, html)
+    res.json({ url: result.url, id: result.id, readyState: result.readyState })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'deploy failed'
+    if (msg.includes('VERCEL_TOKEN')) return res.status(400).json({ error: msg })
+    next(err)
+  }
 })
 
 /* ── PDF generation endpoints ── */

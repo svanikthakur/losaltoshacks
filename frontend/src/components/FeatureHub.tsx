@@ -81,6 +81,7 @@ export default function FeatureHub({ reportId, competitors }: Props) {
         <CohortBenchmark reportId={reportId} />
         <VoicePitchCoach reportId={reportId} />
         <WarmIntroMapper reportId={reportId} />
+        <VercelDeploy reportId={reportId} />
       </div>
     </div>
   )
@@ -729,6 +730,38 @@ function VoicePitchCoach({ reportId }: { reportId: string }) {
         </div>
       )}
     </div>
+  )
+}
+
+/* ─── Vercel Deploy ─── */
+function VercelDeploy({ reportId }: { reportId: string }) {
+  const [state, setState] = useState<ToolState>('idle')
+  const [url, setUrl] = useState<string | null>(null)
+  const run = async () => {
+    setState('loading')
+    try {
+      const r = await api.deployVercel(reportId)
+      setUrl(r.url)
+      setState('done')
+    } catch { setState('error') }
+  }
+  return (
+    <Card label="One-Click Deploy" desc="Deploy a live landing page to Vercel in seconds" state={state} onRun={run} accent="#00D4FF">
+      {url && (
+        <div className="space-y-2">
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="block w-full text-center font-mono text-[10px] uppercase tracking-[0.15em] py-2 rounded"
+            style={{ background: '#00D4FF', color: 'var(--color-void)' }}
+          >
+            Open live site ↗
+          </a>
+          <div className="font-mono text-[10px] text-ink-dim break-all">{url}</div>
+        </div>
+      )}
+    </Card>
   )
 }
 

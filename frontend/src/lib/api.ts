@@ -94,6 +94,7 @@ export const api = {
   cohortBenchmarks: (reportId: string) => req<any>(`/pulse/benchmarks/${reportId}`),
   warmIntroMapper: (reportId: string) => req<any>('/features/warm-intro', { method: 'POST', body: JSON.stringify({ reportId }) }),
   voicePitchCoach: () => req<any>('/features/voice-coach', { method: 'POST', body: '{}' }),
+  deployVercel: (reportId: string) => req<{ url: string; id: string }>('/export/vercel', { method: 'POST', body: JSON.stringify({ reportId }) }),
 }
 
 export function openAgentSocket(reportId: string, onEvent: (e: any) => void) {
