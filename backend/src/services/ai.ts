@@ -1,56 +1,28 @@
 /**
- * Central Ollama client. Every agent goes through here.
- * Ollama exposes an OpenAI-compatible endpoint at :11434/v1 — we use the `openai` SDK.
+ * Central OpenAI client. Every agent goes through here.
  *
- * Notes on JSON reliability:
- *  - We pass `response_format: { type: 'json_object' }` to force grammar-constrained JSON output.
- *    Ollama respects this on the llama/mistral/deepseek family.
- *  - extractJSON() is a tolerant fallback — strips markdown fences, walks braces, repairs
- *    trailing commas and smart quotes, parses what it finds.
- *  - callAgentJSON() retries once with a stricter prompt if the first parse fails,
- *    and logs the raw response so you can eyeball failures during dev.
+ * - Uses the official OpenAI API (no local Ollama).
+ * - Single model for all agents: gpt-4o-mini (fast, cheap, structured output).
+ * - response_format: { type: 'json_object' } for grammar-constrained JSON output.
+ * - 3 retries on malformed JSON with progressively stricter prompts.
+ * - Hard timeout per call (default 45s).
  */
 import OpenAI from 'openai'
 
 const client = new OpenAI({
-  baseURL: process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1',
-  apiKey: 'ollama',
+  apiKey: process.env.OPENAI_API_KEY,
 })
 
 export type AgentRole = 'scout' | 'atlas' | 'forge' | 'deck' | 'connect' | 'pivot' | 'simulator'
 
-const PREFERRED_MODEL: Record<AgentRole, string> = {
-  scout: 'llama3.1',
-  atlas: 'llama3.1',
-  forge: 'deepseek-coder',
-  deck: 'llama3.1',
-  connect: 'mistral',
-  pivot: 'mistral',
-  simulator: 'mistral',
-}
-
-const FALLBACK_MODEL = 'llama3.1'
-
-let availableModels: Set<string> | null = null
-async function getAvailableModels(): Promise<Set<string>> {
-  if (availableModels) return availableModels
-  try {
-    const base = (process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1').replace(/\/v1$/, '')
-    const res = await fetch(`${base}/api/tags`)
-    const json = (await res.json()) as { models?: Array<{ name: string }> }
-    availableModels = new Set((json.models || []).map((m) => m.name.split(':')[0]))
-  } catch {
-    availableModels = new Set<string>()
-  }
-  return availableModels
-}
-
-async function pickModel(role: AgentRole): Promise<string> {
-  const want = PREFERRED_MODEL[role]
-  const have = await getAvailableModels()
-  if (have.has(want)) return want
-  if (have.has(FALLBACK_MODEL)) return FALLBACK_MODEL
-  return want
+const MODEL: Record<AgentRole, string> = {
+  scout: 'gpt-4o-mini',
+  atlas: 'gpt-4o-mini',
+  forge: 'gpt-4o-mini',
+  deck: 'gpt-4o-mini',
+  connect: 'gpt-4o-mini',
+  pivot: 'gpt-4o-mini',
+  simulator: 'gpt-4o-mini',
 }
 
 export interface CallOpts {
@@ -63,7 +35,6 @@ export interface CallOpts {
 
 const DEFAULT_TIMEOUT = 45_000
 
-/** Wrap a promise in a timeout. */
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
@@ -84,7 +55,10 @@ export async function callAgent(
   userMessage: string,
   opts: CallOpts = {},
 ): Promise<string> {
-  const model = await pickModel(role)
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not set in backend/.env')
+  }
+  const model = MODEL[role]
   const timeout = opts.timeoutMs ?? DEFAULT_TIMEOUT
   const started = Date.now()
   console.log(`[ai:${role}] → ${model}  (timeout ${timeout}ms)`)
@@ -112,13 +86,13 @@ export async function callAgent(
   }
 }
 
-/** Streaming version. */
+/** Streaming version — yields token deltas. */
 export async function* callAgentStream(
   role: AgentRole,
   systemPrompt: string,
   userMessage: string,
 ): AsyncGenerator<string> {
-  const model = await pickModel(role)
+  const model = MODEL[role]
   const stream = await client.chat.completions.create({
     model,
     messages: [
@@ -134,24 +108,72 @@ export async function* callAgentStream(
   }
 }
 
+/**
+ * Streaming JSON variant. Streams tokens through onToken (typically broadcast
+ * via WebSocket so the frontend can show real-time output) and parses the
+ * accumulated buffer as JSON when the stream ends.
+ *
+ * Falls back to the same 3-attempt retry as callAgentJSON if the stream
+ * produces malformed JSON.
+ */
+export async function callAgentJSONStream<T>(
+  role: AgentRole,
+  systemPrompt: string,
+  userMessage: string,
+  onToken: (delta: string) => void,
+  opts: CallOpts = {},
+): Promise<T> {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not set in backend/.env')
+  }
+  const model = MODEL[role]
+  const timeout = opts.timeoutMs ?? DEFAULT_TIMEOUT
+  const started = Date.now()
+  console.log(`[ai:${role}] (stream) → ${model}  (timeout ${timeout}ms)`)
+
+  let buffer = ''
+  const streamPromise = (async () => {
+    const stream = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+      stream: true,
+      temperature: opts.temperature ?? 0.3,
+      max_tokens: opts.maxTokens ?? 2048,
+      response_format: { type: 'json_object' as const },
+    })
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content
+      if (delta) {
+        buffer += delta
+        try {
+          onToken(delta)
+        } catch {
+          // never let UI broadcast errors crash the stream
+        }
+      }
+    }
+    return buffer
+  })()
+
+  const raw = await withTimeout(streamPromise, timeout, `[ai:${role}](stream)`)
+  console.log(`[ai:${role}] (stream) ← ${raw.length} chars in ${Date.now() - started}ms`)
+  return extractJSON<T>(raw)
+}
+
 /* ============================================================
    JSON EXTRACTION — tolerant walker with repair
    ============================================================ */
 
-/**
- * Strip markdown code fences and any leading/trailing prose.
- * Walk the string to find the first balanced `{…}` or `[…]`.
- */
 function findJsonBlock(raw: string): string | null {
-  // Strip ```json ... ``` or ``` ... ``` fences first
   const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
   const body = fence ? fence[1] : raw
 
-  // Find first `{` or `[`
   const start = body.search(/[\{\[]/)
   if (start < 0) return null
 
-  // Walk chars, tracking string state + escape, counting depth
   let depth = 0
   let inString = false
   let escape = false
@@ -184,12 +206,9 @@ function findJsonBlock(raw: string): string | null {
 
 function repair(json: string): string {
   return json
-    // smart quotes → straight
     .replace(/[\u201C\u201D]/g, '"')
     .replace(/[\u2018\u2019]/g, "'")
-    // trailing commas
     .replace(/,(\s*[}\]])/g, '$1')
-    // stray BOMs
     .replace(/^\uFEFF/, '')
 }
 
@@ -211,12 +230,8 @@ export function extractJSON<T>(raw: string): T {
 }
 
 /**
- * Call + parse JSON, with TWO retries on malformed output.
- * Attempt 1: default temp + json mode.
- * Attempt 2: lower temp + stricter system prompt + json mode.
- * Attempt 3: minimum temp + even stricter + json mode + example-driven.
- *
- * Every attempt has a hard timeout (from opts.timeoutMs or the default 45s).
+ * Call + parse JSON with up to 3 attempts on malformed output.
+ * gpt-4o-mini in json_object mode rarely needs more than the first attempt.
  */
 export async function callAgentJSON<T>(
   role: AgentRole,

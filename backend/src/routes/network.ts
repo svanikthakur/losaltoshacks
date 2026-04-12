@@ -70,27 +70,64 @@ router.get('/matches', async (req, res) => {
   const all = await db.listAllFounders()
   const myComplement = complement(skillVector(me.skills))
 
-  const candidates = all
-    .filter((f) => f.id !== me.id && f.skills.length > 0)
-    .map((f) => {
-      const v = skillVector(f.skills)
-      let score = cosine(myComplement, v)
-      if (me.industryFocus && f.industryFocus === me.industryFocus) score *= 1.25
-      if (me.riskScore && f.riskScore && Math.abs(me.riskScore - f.riskScore) <= 1) score *= 1.1
-      return {
-        id: f.id,
-        name: f.name,
-        location: f.location,
-        skills: f.skills,
-        industryFocus: f.industryFocus,
-        score,
-        reason: reasonFor(me, f, score),
-      }
-    })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5)
+  // Fetch my latest idea (used for "building in adjacent spaces" bonus)
+  const myReports = await db.listReportsForFounder(me.id)
+  const myLatestIdea = myReports[0]?.ideaText || ''
+  const myIdeaTokens = tokenize(myLatestIdea)
 
-  res.json({ matches: candidates })
+  const scored = await Promise.all(
+    all
+      .filter((f) => f.id !== me.id && f.skills.length > 0)
+      .map(async (f) => {
+        const v = skillVector(f.skills)
+        let score = cosine(myComplement, v)
+        if (me.industryFocus && f.industryFocus === me.industryFocus) score *= 1.25
+        if (me.riskScore && f.riskScore && Math.abs(me.riskScore - f.riskScore) <= 1) score *= 1.1
+
+        // Pull their latest report so we can show what they're actually building
+        const theirReports = await db.listReportsForFounder(f.id)
+        const latestIdea = theirReports[0]?.ideaText || ''
+        const latestStatus = theirReports[0]?.status || null
+
+        // Adjacent-space bonus: token overlap between our latest ideas
+        if (myIdeaTokens.size > 0 && latestIdea) {
+          const theirTokens = tokenize(latestIdea)
+          const overlap = intersect(myIdeaTokens, theirTokens)
+          if (overlap >= 2) score *= 1.0 + Math.min(overlap, 5) * 0.05
+        }
+
+        return {
+          id: f.id,
+          name: f.name,
+          location: f.location,
+          skills: f.skills,
+          industryFocus: f.industryFocus,
+          latestIdea: latestIdea || null,
+          latestStatus,
+          score: Math.min(score, 1),
+          reason: reasonFor(me, f, score),
+        }
+      }),
+  )
+
+  const top = scored.sort((a, b) => b.score - a.score).slice(0, 5)
+  res.json({ matches: top })
 })
+
+function tokenize(s: string): Set<string> {
+  return new Set(
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((t) => t.length >= 4),
+  )
+}
+
+function intersect(a: Set<string>, b: Set<string>): number {
+  let hits = 0
+  for (const t of a) if (b.has(t)) hits++
+  return hits
+}
 
 export default router

@@ -8,6 +8,8 @@ interface Match {
   location?: string
   skills: string[]
   industryFocus?: string
+  latestIdea?: string | null
+  latestStatus?: string | null
   score: number
   reason: string
 }
@@ -86,6 +88,15 @@ export default function Network() {
                     </span>
                   ))}
                 </div>
+
+                {m.latestIdea && (
+                  <div className="mb-4 pb-4 border-b" style={{ borderColor: 'rgba(0,255,65,0.12)' }}>
+                    <div className="font-mono text-[9px] uppercase tracking-[0.15em] text-muted mb-1">
+                      › currently building
+                    </div>
+                    <div className="text-sm text-ink leading-snug line-clamp-3">{m.latestIdea}</div>
+                  </div>
+                )}
 
                 <p className="text-xs text-ink-dim italic mb-5">{m.reason}</p>
 

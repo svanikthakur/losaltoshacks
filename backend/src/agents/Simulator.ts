@@ -57,10 +57,10 @@ export async function generateStressQuestions(
   dna: DNA,
 ): Promise<{ questions: StressTestQuestion[] }> {
   const user = `Idea: "${idea}"
-TAM: ${atlas.tam} · score ${atlas.validationScore}/10
+TAM: ${atlas.tam} · opportunity ${atlas.opportunityScore}/100
 Competitors: ${(scout.competitors || []).map((c) => c.name).join(', ')}
-ICP: ${atlas.icp}
-GTM: ${atlas.gtm}${dnaContextBlock(dna)}
+Launch region: ${atlas.launchRegion}
+Early adopters: ${atlas.customerSegments?.[0]?.description || ''}${dnaContextBlock(dna)}
 
 Ask the 5 brutal questions you'd ask in a partner meeting.`
 

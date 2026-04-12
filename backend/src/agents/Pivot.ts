@@ -47,10 +47,11 @@ export async function runPivot(
 ): Promise<PivotOutput> {
   const user = `Original idea: "${idea}"
 
-Original validation score: ${atlas.validationScore}/10
-Demand signal: ${scout.demandSignal}
+Original opportunity score: ${atlas.opportunityScore}/100
+Demand level: ${scout.demandLevel}
 Competitors: ${(scout.competitors || []).map((c) => c.name).join(', ')}
-Existing pivots Atlas suggested: ${(atlas.pivots || []).join(' | ')}
+Customer segments: ${(atlas.customerSegments || []).map((s) => s.tier).join(', ')}
+Headwinds: ${(atlas.headwinds || []).join(' | ')}
 
 Generate 5 BETTER pivot angles that escape the existing competition.${dnaContextBlock(dna)}`
 

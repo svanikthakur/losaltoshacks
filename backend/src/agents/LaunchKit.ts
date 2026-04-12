@@ -56,8 +56,8 @@ export async function runLaunchKit(
   dna: DNA,
 ): Promise<LaunchKitOutput> {
   const user = `Idea: "${idea}"
-ICP: ${atlas.icp}
-GTM: ${atlas.gtm}
+Early adopters: ${atlas.customerSegments?.[0]?.description || ''}
+Launch region: ${atlas.launchRegion}
 Top competitors: ${(scout.competitors || [])
     .slice(0, 3)
     .map((c) => c.name)

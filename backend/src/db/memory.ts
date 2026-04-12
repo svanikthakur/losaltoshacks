@@ -152,8 +152,28 @@ export const memoryStore = {
   },
   async recordEmailOpen(token: string): Promise<void> {
     const e = emailByToken.get(token)
-    if (!e || e.openedAt) return
-    e.openedAt = Date.now()
+    if (!e) return
+    if (!e.openedAt) e.openedAt = Date.now()
+    e.openCount = (e.openCount || 0) + 1
+  },
+  async recordEmailClick(token: string): Promise<void> {
+    const e = emailByToken.get(token)
+    if (!e) return
+    if (!e.clickedAt) e.clickedAt = Date.now()
+    e.clickCount = (e.clickCount || 0) + 1
+  },
+  async recordEmailDelivered(token: string): Promise<void> {
+    const e = emailByToken.get(token)
+    if (!e) return
+    if (!e.deliveredAt) e.deliveredAt = Date.now()
+  },
+  async recordEmailBounced(token: string): Promise<void> {
+    const e = emailByToken.get(token)
+    if (!e) return
+    if (!e.bouncedAt) e.bouncedAt = Date.now()
+  },
+  async getEmailTrackingByToken(token: string): Promise<EmailTracking | null> {
+    return emailByToken.get(token) || null
   },
   async listEmailTrackingForReport(reportId: string): Promise<EmailTracking[]> {
     const ids = vcByReport.get(reportId)

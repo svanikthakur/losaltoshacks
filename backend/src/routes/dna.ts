@@ -5,12 +5,16 @@
  */
 import { Router } from 'express'
 import { db } from '../db/index.js'
+import { dnaFromFounder, computeDnaStrength } from '../services/dnaContext.js'
 
 const router = Router()
 
 router.get('/', async (req, res) => {
   const f = await db.getFounder(req.founderId!)
   if (!f) return res.status(404).json({ error: 'Not found' })
+  const reports = await db.listReportsForFounder(f.id)
+  const sessionCount = reports.filter((r) => r.status === 'complete').length
+  const strength = computeDnaStrength(dnaFromFounder(f), sessionCount)
   res.json({
     skills: f.skills || [],
     riskScore: f.riskScore ?? 3,
@@ -20,6 +24,7 @@ router.get('/', async (req, res) => {
     priorStartups: f.priorStartups ?? 0,
     industryFocus: f.industryFocus || '',
     tier: f.tier || 'founder',
+    strength,
   })
 })
 

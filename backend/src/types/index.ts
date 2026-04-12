@@ -39,6 +39,7 @@ export interface Report {
   forge_output?: unknown
   deck_output?: unknown
   connect_output?: unknown
+  pivot_output?: unknown
   // export URLs
   pdf_report_url?: string
   pitch_deck_url?: string
@@ -72,6 +73,10 @@ export interface EmailTracking {
   vcMatchId: string
   trackingToken: string
   openedAt?: number
+  openCount?: number
   clickedAt?: number
+  clickCount?: number
+  bouncedAt?: number
+  deliveredAt?: number
   timeOnDeckSeconds?: number
 }

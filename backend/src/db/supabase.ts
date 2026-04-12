@@ -414,6 +414,47 @@ export const supabaseStore: DB = {
       .is('opened_at', null)
   },
 
+  async recordEmailClick(token: string): Promise<void> {
+    await client
+      .from('email_tracking')
+      .update({ clicked_at: new Date().toISOString() })
+      .eq('tracking_token', token)
+      .is('clicked_at', null)
+  },
+
+  async recordEmailDelivered(token: string): Promise<void> {
+    await client
+      .from('email_tracking')
+      .update({ delivered_at: new Date().toISOString() })
+      .eq('tracking_token', token)
+      .is('delivered_at', null)
+  },
+
+  async recordEmailBounced(token: string): Promise<void> {
+    await client
+      .from('email_tracking')
+      .update({ bounced_at: new Date().toISOString() })
+      .eq('tracking_token', token)
+      .is('bounced_at', null)
+  },
+
+  async getEmailTrackingByToken(token: string): Promise<EmailTracking | null> {
+    const { data } = await client
+      .from('email_tracking')
+      .select('*')
+      .eq('tracking_token', token)
+      .maybeSingle()
+    if (!data) return null
+    const r = data as any
+    return {
+      id: r.id,
+      vcMatchId: r.vc_match_id,
+      trackingToken: r.tracking_token,
+      openedAt: r.opened_at ? new Date(r.opened_at).getTime() : undefined,
+      clickedAt: r.clicked_at ? new Date(r.clicked_at).getTime() : undefined,
+    }
+  },
+
   async listEmailTrackingForReport(reportId) {
     // Join via vc_matches
     const { data: matches, error } = await client

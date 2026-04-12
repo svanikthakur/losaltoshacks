@@ -62,66 +62,75 @@ export interface ReportPageInput {
 function buildBlocks(r: ReportPageInput): Block[] {
   const blocks: Block[] = []
 
-  blocks.push(callout(`Validation score: ${r.validationScore}/10 — demand ${r.scout.demandSignal}`, '📊'))
+  blocks.push(
+    callout(
+      `Validation ${r.validationScore}/10 · Opportunity ${r.atlas.opportunityScore}/100 · Demand ${r.scout.demandLevel}`,
+      '📊',
+    ),
+  )
   blocks.push(p(r.idea))
   blocks.push(divider())
 
   /* Scout */
-  blocks.push(h2('01 · Scout — Market demand'))
+  blocks.push(h2('01 · Scout — Market intelligence'))
   blocks.push(p(r.scout.summary || ''))
   if (r.scout.competitors?.length) {
     blocks.push(h3('Competitors'))
     for (const c of r.scout.competitors.slice(0, 8)) {
-      blocks.push(bullet(`${c.name} — ${c.description}`))
+      blocks.push(bullet(`${c.name} (${c.stage}) — weakness: ${c.weakness}${c.funding ? ' · ' + c.funding : ''}`))
     }
   }
-  if (r.scout.painPoints?.length) {
-    blocks.push(h3('Pain points'))
-    for (const pt of r.scout.painPoints) blocks.push(bullet(pt))
+  if (r.scout.differentiationAngles?.length) {
+    blocks.push(h3('Differentiation angles'))
+    for (const a of r.scout.differentiationAngles) blocks.push(bullet(a))
   }
-  if (r.scout.quotes?.length) {
-    blocks.push(h3('Signal quotes'))
-    for (const q of r.scout.quotes) blocks.push(quote(q))
+  if (r.scout.marketSignals?.length) {
+    blocks.push(h3('Market signals'))
+    for (const s of r.scout.marketSignals) blocks.push(bullet(`[${s.source}] ${s.signal}`))
   }
   blocks.push(divider())
 
   /* Atlas */
-  blocks.push(h2('02 · Atlas — Market sizing'))
+  blocks.push(h2('02 · Atlas — Market sizing + opportunity'))
   blocks.push(p(r.atlas.summary || ''))
   blocks.push(bullet(`TAM: ${r.atlas.tam}`))
   blocks.push(bullet(`SAM: ${r.atlas.sam}`))
   blocks.push(bullet(`SOM: ${r.atlas.som}`))
-  blocks.push(bullet(`Growth: ${r.atlas.marketGrowthRate}`))
-  blocks.push(bullet(`ICP: ${r.atlas.icp}`))
-  blocks.push(bullet(`GTM: ${r.atlas.gtm}`))
-  if (r.atlas.pivots?.length) {
-    blocks.push(h3('Pivot angles'))
-    for (const pv of r.atlas.pivots) blocks.push(bullet(pv))
+  blocks.push(bullet(`Launch region: ${r.atlas.launchRegion}`))
+  if (r.atlas.tailwinds?.length) {
+    blocks.push(h3('Tailwinds'))
+    for (const t of r.atlas.tailwinds) blocks.push(bullet(t))
+  }
+  if (r.atlas.headwinds?.length) {
+    blocks.push(h3('Headwinds'))
+    for (const t of r.atlas.headwinds) blocks.push(bullet(t))
   }
   blocks.push(divider())
 
   /* Forge */
-  blocks.push(h2('03 · Forge — MVP scaffold'))
-  blocks.push(p(`Repository: ${r.forge.repoUrl}`))
+  blocks.push(h2('03 · Forge — Technical blueprint'))
+  if (r.forge.repoUrl) blocks.push(p(`Repository: ${r.forge.repoUrl}`))
+  if (r.forge.zipUrl) blocks.push(p(`Scaffold: ${r.forge.zipUrl}`))
   blocks.push(h3('Tech stack'))
-  for (const t of r.forge.techStack) blocks.push(bullet(t))
-  blocks.push(h3('Components'))
-  for (const c of r.forge.components) blocks.push(bullet(c))
+  for (const t of r.forge.techStack) blocks.push(bullet(`${t.layer}: ${t.technology} — ${t.justification}`))
+  blocks.push(h3('MVP features'))
+  for (const f of r.forge.mvpFeatures) blocks.push(bullet(`${f.name} (${f.complexity}, ~${f.estimateDays}d)`))
   blocks.push(divider())
 
   /* Deck */
   blocks.push(h2('04 · Deck — Pitch deck'))
-  blocks.push(p(`Slides URL: ${r.deck.slidesUrl}`))
+  if (r.deck.oneLiner) blocks.push(quote(r.deck.oneLiner))
   blocks.push(p(`PPTX: ${r.deck.pptxUrl}`))
-  blocks.push(h3('Sections'))
-  for (const s of r.deck.slides) blocks.push(bullet(s))
+  blocks.push(h3('Slides'))
+  for (const s of r.deck.slides) blocks.push(bullet(`${s.section} — ${s.title}`))
   blocks.push(divider())
 
   /* Connect */
-  blocks.push(h2('05 · Connect — Investor list'))
-  blocks.push(p(`Sheet: ${r.connect.sheetsUrl}`))
-  for (const inv of r.connect.investors) {
-    blocks.push(bullet(`${inv.name} — ${inv.thesis} — fit ${Math.round((inv.fit || 0) * 100)}%`))
+  blocks.push(h2('05 · Connect — Investor outreach'))
+  blocks.push(bullet(`Investor readiness: ${r.connect.investorReadinessScore}/100`))
+  blocks.push(bullet(`Fundraising: ${r.connect.fundraisingStrategy.amount} at ${r.connect.fundraisingStrategy.valuationRange}`))
+  for (const inv of r.connect.topVCs) {
+    blocks.push(bullet(`${inv.name} — ${inv.firm} — ${inv.compatibilityScore}% fit`))
   }
   blocks.push(divider())
 

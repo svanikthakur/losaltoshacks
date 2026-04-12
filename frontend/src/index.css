@@ -27,10 +27,10 @@
   --color-warning: #E67E22;
   --color-offline: #C0392B;
 
-  /* Text — warm grays */
-  --color-text-1: #DDD9D0;
-  --color-text-2: #6B6660;
-  --color-text-3: #332F2C;
+  /* Text — warm grays (tuned for contrast against #07090D) */
+  --color-text-1: #ECE8DF; /* primary — ~14:1 */
+  --color-text-2: #B3ADA2; /* secondary — ~7:1 */
+  --color-text-3: #7E7A72; /* muted — ~4.5:1, still readable */
 
   /* Borders */
   --color-border-1: rgba(0, 255, 65, 0.12);

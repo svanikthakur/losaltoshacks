@@ -36,6 +36,11 @@ export const api = {
     req<{ reportId: string }>('/reports/generate', { method: 'POST', body: JSON.stringify(data) }),
   getReport: (id: string) => req<any>(`/reports/${id}`),
   getScoreHistory: (id: string) => req<{ score: number; history: any[] }>(`/reports/${id}/score`),
+  regenerate: (reportId: string, agent?: 'scout' | 'atlas' | 'forge' | 'deck' | 'connect') =>
+    req<{ reportId: string; agent: string }>(`/reports/${reportId}/regenerate`, {
+      method: 'POST',
+      body: JSON.stringify(agent ? { agent } : {}),
+    }),
 
   /* network + community */
   getMatches: () => req<{ matches: any[] }>('/network/matches'),
@@ -74,7 +79,8 @@ export const api = {
     }),
 
   /* investors */
-  getInvestorTracking: (reportId: string) => req<{ tracking: any[] }>(`/investors/tracking/${reportId}`),
+  getInvestorTracking: (reportId: string) => req<{ tracking: any[]; matches: any[] }>(`/investors/tracking/${reportId}`),
+  getRankedInvestors: (reportId: string) => req<{ ranked: any[] }>(`/investors/ranked/${reportId}`),
 }
 
 export function openAgentSocket(reportId: string, onEvent: (e: any) => void) {

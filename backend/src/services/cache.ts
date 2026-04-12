@@ -1,19 +1,21 @@
 /**
  * Server-side hash cache for full pipeline outputs.
  *
- * Keys are SHA-256(idea || dna_signature). Hits return the previously
- * computed agent outputs, so a re-run of the same idea (with the same DNA
- * profile) is instant. TTL: 24 hours.
+ * Two lookup paths:
+ *  1. Exact key (sha256 of normalized idea + dna signature) — instant.
+ *  2. Fuzzy match (Jaccard token-set similarity ≥ 0.85) within the same DNA bucket.
  *
- * Lives in-process. Survives a backend restart only if you swap to Redis,
- * but for hackathon purposes this is fine.
+ * 24h TTL.
  */
 import { createHash } from 'crypto'
 
 const TTL_MS = 24 * 60 * 60 * 1000
+const FUZZY_THRESHOLD = 0.85
 
 interface CachedRun {
   expiresAt: number
+  idea: string // original idea text — used for fuzzy matching
+  dnaSig: string
   outputs: {
     scout: unknown
     atlas: unknown
@@ -31,6 +33,7 @@ export function cacheKey(idea: string, dnaSignature: string): string {
   return createHash('sha256').update(`${norm}::${dnaSignature}`).digest('hex')
 }
 
+/** Exact-key lookup. */
 export function getCached(key: string): CachedRun['outputs'] | null {
   const hit = store.get(key)
   if (!hit) return null
@@ -41,16 +44,15 @@ export function getCached(key: string): CachedRun['outputs'] | null {
   return hit.outputs
 }
 
-export function setCached(key: string, outputs: CachedRun['outputs']): void {
-  store.set(key, { expiresAt: Date.now() + TTL_MS, outputs })
-}
-
 /**
- * Fuzzy-match an idea against all cached entries. Returns a hit if any
- * normalized cached idea has a Jaccard similarity >= threshold (0.85).
- * This is the "same idea, slightly different wording" case.
+ * Fuzzy lookup. Iterates entries with the same DNA signature, computes
+ * Jaccard similarity on tokenized ideas, returns the first hit above threshold.
  */
-export function findFuzzyMatch(idea: string, dnaSignature: string, threshold = 0.85): CachedRun['outputs'] | null {
+export function findFuzzyMatch(
+  idea: string,
+  dnaSignature: string,
+  threshold = FUZZY_THRESHOLD,
+): CachedRun['outputs'] | null {
   const targetTokens = tokenize(idea)
   if (targetTokens.size === 0) return null
 
@@ -59,14 +61,29 @@ export function findFuzzyMatch(idea: string, dnaSignature: string, threshold = 0
       store.delete(key)
       continue
     }
-    // Quickly skip entries with the wrong DNA signature
-    if (!key.endsWith(dnaSignature.slice(0, 16))) continue
-    // We don't store the original idea, so fuzzy is best-effort.
-    // Skip implementation: only exact-key cache hit for now. Returning null.
+    if (entry.dnaSig !== dnaSignature) continue
+    const sim = jaccard(targetTokens, tokenize(entry.idea))
+    if (sim >= threshold) return entry.outputs
   }
   return null
 }
 
+export function setCached(key: string, idea: string, dnaSignature: string, outputs: CachedRun['outputs']): void {
+  store.set(key, {
+    expiresAt: Date.now() + TTL_MS,
+    idea,
+    dnaSig: dnaSignature,
+    outputs,
+  })
+}
+
+export function clearCache(): void {
+  store.clear()
+}
+
+/* ============================================================
+   Helpers
+   ============================================================ */
 function tokenize(s: string): Set<string> {
   return new Set(
     s
@@ -77,6 +94,10 @@ function tokenize(s: string): Set<string> {
   )
 }
 
-export function clearCache(): void {
-  store.clear()
+function jaccard(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 || b.size === 0) return 0
+  let intersection = 0
+  for (const t of a) if (b.has(t)) intersection++
+  const union = a.size + b.size - intersection
+  return intersection / union
 }

@@ -45,7 +45,8 @@ Stage: ${stage}
 Industry: ${dna.industryFocus || 'unspecified'}
 Location: ${dna.location || 'unspecified'}
 Available hours/week: ${dna.hoursPerWeek || 'unspecified'}
-Atlas market thesis: ${atlas.gtm}${dnaContextBlock(dna)}
+Launch region: ${atlas.launchRegion}
+Tailwinds: ${(atlas.tailwinds || []).join(' | ')}${dnaContextBlock(dna)}
 
 Generate the 12-week fundraising roadmap.`
 

@@ -8,9 +8,11 @@ import { createServer } from 'http'
 import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
+import path from 'path'
 
 import { initWebSocket } from './websocket.js'
 import { initDB, db, dbMode } from './db/index.js'
+import { startWeeklyRefresh, refreshReport } from './queue/weeklyRefresh.js'
 import { requireAuth } from './middleware/auth.js'
 import { errorHandler } from './middleware/errorHandler.js'
 
@@ -28,6 +30,7 @@ import networkRouter from './routes/network.js'
 import simulatorRouter from './routes/simulator.js'
 import timelineRouter from './routes/timeline.js'
 import launchkitRouter from './routes/launchkit.js'
+import sendgridRouter from './routes/sendgrid.js'
 
 const app = express()
 const server = createServer(app)
@@ -37,8 +40,20 @@ app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173', cred
 app.use(morgan('dev'))
 app.use(express.json({ limit: '1mb' }))
 
+// Static — generated decks (real .pptx) and other binaries live here
+app.use(
+  '/storage',
+  express.static(path.join(process.cwd(), 'storage'), {
+    setHeaders: (res) => {
+      res.set('Cross-Origin-Resource-Policy', 'cross-origin')
+    },
+  }),
+)
+
 /* ───── Public ───── */
-app.get('/health', (_req, res) => res.json({ ok: true, ollama: process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1' }))
+app.get('/health', (_req, res) =>
+  res.json({ ok: true, ai: process.env.OPENAI_API_KEY ? 'openai' : 'unset' }),
+)
 app.use('/api/auth', authRouter)
 
 // Email-open tracking pixel — public, 1x1 transparent GIF
@@ -48,6 +63,9 @@ app.get('/api/track/:token/open', async (req, res) => {
   res.set({ 'Content-Type': 'image/gif', 'Cache-Control': 'no-store' })
   res.send(PIXEL)
 })
+
+// SendGrid Event Webhook — public, threads events back to email_tracking
+app.use('/api/sendgrid', sendgridRouter)
 
 /* ───── Protected ───── */
 app.use('/api/reports', requireAuth, reportsRouter)
@@ -69,11 +87,12 @@ app.use(errorHandler)
 async function main() {
   await initDB()
   initWebSocket(server)
+  startWeeklyRefresh()
 
   const PORT = Number(process.env.PORT) || 4000
   server.listen(PORT, () => {
     console.log(`[agentconnect] backend :${PORT}`)
-    console.log(`[agentconnect] ollama   ${process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1'}`)
+    console.log(`[agentconnect] ai       ${process.env.OPENAI_API_KEY ? 'openai (gpt-4o-mini)' : 'UNSET — set OPENAI_API_KEY in .env'}`)
     console.log(`[agentconnect] db       ${dbMode()}`)
     console.log(`[agentconnect] queue    ${process.env.REDIS_URL ? 'bullmq (stub)' : 'in-process'}`)
   })
