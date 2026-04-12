@@ -79,7 +79,6 @@ export default function FeatureHub({ reportId, competitors }: Props) {
         <CoFounderSim reportId={reportId} />
         <MarketPulse reportId={reportId} />
         <CohortBenchmark reportId={reportId} />
-        <DownloadReports reportId={reportId} />
         <VoicePitchCoach reportId={reportId} />
         <WarmIntroMapper reportId={reportId} />
       </div>

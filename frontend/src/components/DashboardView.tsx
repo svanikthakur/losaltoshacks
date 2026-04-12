@@ -282,47 +282,97 @@ export default function DashboardView({ report }: { report: ReportLike }) {
 
   return (
     <main className="pt-32 pb-24 min-h-screen">
-      <div className="shell space-y-10">
+      <div className="shell space-y-12">
         <Header idea={report.idea} score={validationScore} opportunity={atlas.opportunityScore} />
 
         <QuickStats scout={scout} atlas={atlas} forge={forge} connect={connect} validationScore={validationScore} />
 
-        {/* ── SECTION 1: Market Intelligence (Scout) ── */}
+        {/* ═══ SECTION 1: MARKET INTELLIGENCE ═══ */}
+        <SectionDivider num="01" label="SCOUT" sub="Market intelligence & demand sensing" />
         {scout.marketArticle && <MarketArticle scout={scout} />}
         {!scout.marketArticle && scout.summary && <ScoutSummary scout={scout} />}
 
-        {/* ── SECTION 2: Market Sizing + Growth (Atlas) ── */}
-        {atlas.tam && <StrategicPlan atlas={atlas} />}
-        {atlas.tam && <AtlasGrowthChart atlas={atlas} />}
+        {/* ═══ SECTION 2: MARKET SIZING & OPPORTUNITY ═══ */}
+        {atlas.tam && (
+          <>
+            <SectionDivider num="02" label="ATLAS" sub="Global demand mapping & market sizing" />
+            <StrategicPlan atlas={atlas} />
+            <AtlasGrowthChart atlas={atlas} />
+          </>
+        )}
 
-        {/* ── Auto-pivot — appears when Atlas opportunity < 50 ── */}
+        {/* ═══ AUTO-PIVOT ═══ */}
         {report.pivot_output &&
           Array.isArray((report.pivot_output as PivotOut).pivots) &&
           ((report.pivot_output as PivotOut).pivots?.length ?? 0) > 0 && (
-            <PivotPanel pivots={((report.pivot_output as PivotOut).pivots ?? []) as PivotIdea[]} />
+            <>
+              <SectionDivider num="!!" label="PIVOT" sub="Opportunity below threshold — alternatives generated" />
+              <PivotPanel pivots={((report.pivot_output as PivotOut).pivots ?? []) as PivotIdea[]} />
+            </>
           )}
 
-        {/* ── SECTION 3: Deck + Forge side-by-side ── */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
-            <DeckCard deck={deck} />
-            <DeckSlides deck={deck} reportId={report.id} />
-          </div>
-          <div className="space-y-6">
-            <ForgeCard forge={forge} />
-            {Array.isArray(forge.mvpFeatures) && forge.mvpFeatures.length > 0 && (
-              <ForgeBlueprint forge={forge} />
-            )}
-          </div>
-        </div>
+        {/* ═══ SECTION 3: PITCH DECK ═══ */}
+        <SectionDivider num="03" label="DECK" sub="Pitch deck generation & slide content" />
+        <DeckCard deck={deck} />
+        <DeckSlides deck={deck} reportId={report.id} />
 
-        {/* ── SECTION 4: Investors ── */}
+        {/* ═══ SECTION 4: TECHNICAL BLUEPRINT ═══ */}
+        <SectionDivider num="04" label="FORGE" sub="Technical architecture & MVP scaffold" />
+        <ForgeCard forge={forge} />
+        {Array.isArray(forge.mvpFeatures) && forge.mvpFeatures.length > 0 && (
+          <ForgeBlueprint forge={forge} />
+        )}
+
+        {/* ═══ SECTION 5: INVESTOR OUTREACH ═══ */}
+        <SectionDivider num="05" label="CONNECT" sub="VC matching, outreach & tracking" />
         <ConnectSummaryCard connect={connect} />
         {Array.isArray(connect.topVCs) && connect.topVCs.length > 0 && (
           <InvestorList investors={connect.topVCs} reportId={report.id} />
         )}
 
-        {/* ── SECTION 5: Feature Hub — all AI tools ── */}
+        {/* ═══ SECTION 6: DOWNLOADS ═══ */}
+        <SectionDivider num="06" label="EXPORT" sub="Download professional reports" />
+        <div className="grid md:grid-cols-2 gap-4">
+          <a
+            href={`/api/export/validation-report/${report.id}?token=${typeof window !== 'undefined' ? localStorage.getItem('ac_token') : ''}`}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-xl border p-6 flex items-center gap-4 transition hover:border-[var(--color-charge)]"
+            style={{ borderColor: 'var(--color-border-1)', background: 'var(--color-surface-1)' }}
+          >
+            <div
+              className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(0,255,65,0.1)' }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-charge)" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+            </div>
+            <div>
+              <div className="font-display text-lg font-bold text-ink">Validation Report</div>
+              <div className="text-xs text-ink-dim">Full 5-agent report · 8 pages · PDF</div>
+            </div>
+          </a>
+          <a
+            href={`/api/export/market-research/${report.id}?token=${typeof window !== 'undefined' ? localStorage.getItem('ac_token') : ''}`}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-xl border p-6 flex items-center gap-4 transition hover:border-[var(--color-charge)]"
+            style={{ borderColor: 'var(--color-border-1)', background: 'var(--color-surface-1)' }}
+          >
+            <div
+              className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: 'rgba(34,211,238,0.1)' }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22D3EE" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+            </div>
+            <div>
+              <div className="font-display text-lg font-bold text-ink">Market Research</div>
+              <div className="text-xs text-ink-dim">Scout + Atlas deep dive · 4 pages · PDF</div>
+            </div>
+          </a>
+        </div>
+
+        {/* ═══ SECTION 7: AI TOOLS ═══ */}
+        <SectionDivider num="07" label="TOOLS" sub="AI-powered features & analysis" />
         <FeatureHub
           reportId={report.id}
           competitors={Array.isArray(scout.competitors) ? scout.competitors : undefined}
@@ -2014,6 +2064,30 @@ function Glow({ children, compact = false }: { children: React.ReactNode; compac
     >
       {children}
     </BorderGlow>
+  )
+}
+
+function SectionDivider({ num, label, sub }: { num: string; label: string; sub: string }) {
+  return (
+    <div className="flex items-center gap-4 pt-4">
+      <div
+        className="font-mono text-[11px] font-bold px-2.5 py-1 rounded"
+        style={{ background: 'rgba(0,255,65,0.12)', color: 'var(--color-charge)' }}
+      >
+        {num}
+      </div>
+      <div className="flex-1">
+        <div className="flex items-baseline gap-3">
+          <h2 className="font-display text-xl font-bold uppercase tracking-[0.05em] text-ink">
+            {label}
+          </h2>
+          <div className="hidden md:block h-px flex-1" style={{ background: 'var(--color-border-1)' }} />
+        </div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted mt-0.5">
+          {sub}
+        </div>
+      </div>
+    </div>
   )
 }
 
