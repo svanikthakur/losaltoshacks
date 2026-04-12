@@ -233,63 +233,78 @@ export async function runForge(
     }
   }
 
-  // Path B — generate a real working app + deploy to Vercel
+  // Path B — build a polished landing page from blueprint data (no extra API call)
   let appUrl: string | null = null
-  let appError: string | undefined
+  const startupName = blueprint.shortPitch?.split(/[.!,]/)[ 0] || idea.slice(0, 40)
+  const features = blueprint.mvpFeatures.slice(0, 6)
+  const stack = blueprint.techStack.map((t) => typeof t === 'string' ? t : t.technology)
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${slug}</title><script src="https://cdn.tailwindcss.com"></script>
+<style>*{scroll-behavior:smooth}body{font-family:system-ui,sans-serif}</style>
+</head><body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white min-h-screen">
+<nav class="fixed w-full top-0 z-50 backdrop-blur-md bg-slate-950/70 border-b border-white/5">
+<div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+<span class="text-lg font-bold tracking-tight">${slug.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}</span>
+<div class="flex gap-6 text-sm text-slate-400">
+<a href="#features" class="hover:text-white transition">Features</a>
+<a href="#stack" class="hover:text-white transition">Stack</a>
+<a href="#waitlist" class="hover:text-white transition">Get Access</a>
+</div></div></nav>
+<section class="pt-32 pb-20 px-6"><div class="max-w-4xl mx-auto text-center">
+<div class="inline-block px-4 py-1.5 rounded-full text-xs font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-8">Buildability ${blueprint.buildabilityScore}/100</div>
+<h1 class="text-5xl md:text-7xl font-bold leading-[1.1] mb-6 bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">${blueprint.shortPitch || idea}</h1>
+<p class="text-xl text-slate-400 max-w-2xl mx-auto mb-10">Built with ${stack.slice(0, 3).join(', ')}${stack.length > 3 ? ` and ${stack.length - 3} more` : ''}.</p>
+<a href="#waitlist" class="inline-block px-8 py-4 bg-white text-slate-900 rounded-full font-semibold hover:bg-slate-100 transition shadow-lg shadow-white/10">Get Early Access</a>
+</div></section>
+<section id="features" class="py-20 px-6"><div class="max-w-6xl mx-auto">
+<h2 class="text-3xl font-bold text-center mb-4">Core Features</h2>
+<p class="text-slate-400 text-center mb-12 max-w-xl mx-auto">Everything you need, nothing you don't.</p>
+<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+${features.map((f, i) => `<div class="p-6 rounded-2xl bg-white/[0.03] border border-white/[0.06] hover:border-indigo-500/30 transition group">
+<div class="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 font-mono text-sm font-bold mb-4">${String(i + 1).padStart(2, '0')}</div>
+<h3 class="text-lg font-semibold mb-2">${f.name}</h3>
+<p class="text-sm text-slate-400 leading-relaxed">${f.userStory}</p>
+<div class="mt-3 flex items-center gap-2"><span class="text-xs px-2 py-0.5 rounded-full ${f.complexity === 'high' ? 'bg-red-500/10 text-red-400' : f.complexity === 'medium' ? 'bg-amber-500/10 text-amber-400' : 'bg-emerald-500/10 text-emerald-400'}">${f.complexity}</span><span class="text-xs text-slate-500">~${f.estimateDays} days</span></div>
+</div>`).join('\n')}
+</div></div></section>
+<section id="stack" class="py-20 px-6 border-t border-white/5"><div class="max-w-4xl mx-auto text-center">
+<h2 class="text-3xl font-bold mb-12">Tech Stack</h2>
+<div class="flex flex-wrap justify-center gap-3">
+${stack.map((t) => `<span class="px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.08] text-sm text-slate-300">${t}</span>`).join('\n')}
+</div></div></section>
+<section id="waitlist" class="py-20 px-6 border-t border-white/5"><div class="max-w-lg mx-auto text-center">
+<h2 class="text-3xl font-bold mb-4">Get Early Access</h2>
+<p class="text-slate-400 mb-8">Be the first to know when we launch.</p>
+<form class="flex gap-2" onsubmit="event.preventDefault();this.querySelector('button').textContent='Joined!';this.querySelector('button').disabled=true">
+<input type="email" placeholder="you@email.com" required class="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50">
+<button type="submit" class="px-6 py-3 bg-white text-slate-900 rounded-xl font-semibold hover:bg-slate-100 transition">Join</button>
+</form></div></section>
+<footer class="py-8 px-6 border-t border-white/5 text-center text-xs text-slate-600">
+Built with Venture AI
+</footer></body></html>`
 
   try {
-    const appHtml = await callAgentJSON<{ html: string }>(
-      'forge',
-      `You are a senior full-stack developer. Generate a COMPLETE, beautiful, single-file HTML application.
-
-Rules:
-- Return ONLY JSON: { "html": "<full html document>" }
-- Use <script src="https://cdn.tailwindcss.com"></script> for styling
-- Use Alpine.js via CDN for interactivity: <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
-- The app must be FULLY FUNCTIONAL with working UI interactions, not just a landing page
-- Include: navigation, hero section, feature cards, interactive demo section, pricing/waitlist, footer
-- Use modern design: gradients, rounded corners, shadows, hover effects, transitions
-- Make it responsive (mobile + desktop)
-- Include realistic sample data and working form interactions
-- The HTML must be under 15000 characters
-- Make it look like a real product website that a startup would ship on launch day
-- NO placeholder text — every word should be real copy for this specific product`,
-      `Build a complete product website for:
-
-Idea: "${idea}"
-Product pitch: "${blueprint.shortPitch}"
-Tech stack: ${blueprint.techStack.map((t) => t.technology).join(', ')}
-Key features:
-${blueprint.mvpFeatures.map((f) => `- ${f.name}: ${f.userStory}`).join('\n')}
-
-Generate the full working HTML app.`,
-      { temperature: 0.5, maxTokens: 8000, timeoutMs: 60_000 },
-    )
-
-    if (appHtml?.html && process.env.VERCEL_TOKEN) {
-      const deployed = await deployLandingPage(slug, appHtml.html)
+    if (process.env.VERCEL_TOKEN) {
+      const deployed = await deployLandingPage(slug, html)
       appUrl = deployed.url
       console.log(`[forge] app deployed to ${appUrl}`)
-    } else if (appHtml?.html) {
+    } else {
       await mkdir(STORAGE_DIR, { recursive: true })
       const htmlPath = path.join(STORAGE_DIR, `${slug}.html`)
-      await writeFile(htmlPath, appHtml.html)
+      await writeFile(htmlPath, html)
       appUrl = `${PUBLIC_BASE}/${slug}.html`
     }
   } catch (err) {
-    appError = (err as Error).message
-    console.warn(`[forge] app generation failed: ${appError}`)
+    console.warn(`[forge] deploy failed: ${(err as Error).message}`)
   }
 
   return {
     ...blueprint,
     repoUrl: null,
     zipUrl: appUrl,
-    error: appError
-      ? `App generation failed: ${appError}`
-      : !appUrl
-      ? 'Could not generate app (VERCEL_TOKEN or OPENAI_API_KEY may be missing)'
-      : undefined,
+    error: !appUrl ? 'Deploy failed — view blueprint above for full build plan' : undefined,
   }
 }
 
