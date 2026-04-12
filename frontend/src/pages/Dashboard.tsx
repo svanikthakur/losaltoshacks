@@ -173,7 +173,7 @@ function Header({ name }: { name?: string }) {
     >
       <div>
         <div className="font-mono text-[11px] uppercase tracking-[0.25em] text-cyan-400/70">
-          // AGENTCONNECT · DASHBOARD
+          // VENTURE AI · DASHBOARD
         </div>
         <h1 className="mt-3 font-display text-4xl md:text-5xl font-semibold tracking-tight">
           Welcome back{name ? `, ${name}` : ''}

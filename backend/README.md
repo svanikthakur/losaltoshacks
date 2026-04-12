@@ -1,4 +1,4 @@
-# AgentConnect Backend (v0.2)
+# Venture AI Backend (v0.2)
 
 Five-agent startup validation pipeline. Zero paid AI — runs on local Ollama.
 

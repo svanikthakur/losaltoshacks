@@ -40,7 +40,7 @@ ${pixel}
       to: args.to,
       from: {
         email: process.env.SENDGRID_FROM_EMAIL,
-        name: process.env.SENDGRID_FROM_NAME || 'AgentConnect',
+        name: process.env.SENDGRID_FROM_NAME || 'Venture AI',
       },
       subject: args.subject,
       html: wrappedHtml,

@@ -36,7 +36,7 @@ export default function Login() {
         </button>
       </form>
       <div className="mt-8 text-sm text-ink-dim">
-        New to AgentConnect?{' '}
+        New to Venture AI?{' '}
         <Link to="/signup" className="text-accent font-medium hover:underline">
           Create an account
         </Link>

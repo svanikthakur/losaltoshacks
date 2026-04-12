@@ -40,7 +40,7 @@ export default function LaunchKit() {
 
   const deployToVercel = () => {
     if (!kit) return
-    const url = `https://vercel.com/new/clone?repository-url=https://github.com/agentconnect-demo/launchkit-template&project-name=${encodeURIComponent(kit.tagline.slice(0, 40))}`
+    const url = `https://vercel.com/new/clone?repository-url=https://github.com/venture-ai-demo/launchkit-template&project-name=${encodeURIComponent(kit.tagline.slice(0, 40))}`
     window.open(url, '_blank')
   }
 

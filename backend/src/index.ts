@@ -95,14 +95,14 @@ async function main() {
 
   const PORT = Number(process.env.PORT) || 4000
   server.listen(PORT, () => {
-    console.log(`[agentconnect] backend :${PORT}`)
-    console.log(`[agentconnect] ai       ${process.env.OPENAI_API_KEY ? 'openai (gpt-4o-mini)' : 'UNSET — set OPENAI_API_KEY in .env'}`)
-    console.log(`[agentconnect] db       ${dbMode()}`)
-    console.log(`[agentconnect] queue    ${process.env.REDIS_URL ? 'bullmq (stub)' : 'in-process'}`)
+    console.log(`[venture-ai] backend :${PORT}`)
+    console.log(`[venture-ai] ai       ${process.env.OPENAI_API_KEY ? 'openai (gpt-4o-mini)' : 'UNSET — set OPENAI_API_KEY in .env'}`)
+    console.log(`[venture-ai] db       ${dbMode()}`)
+    console.log(`[venture-ai] queue    ${process.env.REDIS_URL ? 'bullmq (stub)' : 'in-process'}`)
   })
 }
 
 main().catch((err) => {
-  console.error('[agentconnect] fatal:', err)
+  console.error('[venture-ai] fatal:', err)
   process.exit(1)
 })

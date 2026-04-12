@@ -40,7 +40,7 @@ export default function Investors() {
           Live VC <span style={{ color: 'var(--color-charge)' }}>tracking.</span>
         </h1>
         <p className="mt-5 text-ink-dim text-lg max-w-xl">
-          Every email sent through AgentConnect drops a tracking pixel. Opens, clicks, and time-on-deck stream into
+          Every email sent through Venture AI drops a tracking pixel. Opens, clicks, and time-on-deck stream into
           this dashboard in real time.
         </p>
 

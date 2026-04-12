@@ -1,4 +1,4 @@
-# AgentConnect
+# Venture AI
 
 Validate a startup idea in 10 minutes. 5 AI agents, one click, five real files out.
 

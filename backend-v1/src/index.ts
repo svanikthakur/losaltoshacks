@@ -39,5 +39,5 @@ server.on('upgrade', (req, socket, head) => {
 
 const PORT = Number(process.env.PORT) || 4000
 server.listen(PORT, () => {
-  console.log(`[agentconnect] backend listening on :${PORT}`)
+  console.log(`[venture-ai] backend listening on :${PORT}`)
 })

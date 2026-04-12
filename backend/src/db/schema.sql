@@ -1,4 +1,4 @@
--- AgentConnect schema. Run once in Supabase SQL editor.
+-- Venture AI schema. Run once in Supabase SQL editor.
 -- Matches the in-memory store in /src/db/memory.ts for a drop-in swap.
 
 create extension if not exists "uuid-ossp";

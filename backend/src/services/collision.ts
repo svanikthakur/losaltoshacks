@@ -4,7 +4,7 @@
  *
  *   - Product Hunt: last 90 days of launches (via PH GraphQL)
  *   - Y Combinator: the full YC company directory
- *   - Internal DB: every idea submitted to AgentConnect by other founders
+ *   - Internal DB: every idea submitted to Venture AI by other founders
  *
  * Produces a unified 0-100 collision score and a breakdown of exactly which
  * companies/launches/ideas match. This is the core moat behind Scout's
@@ -109,7 +109,7 @@ function buildSummary(r: Omit<CollisionReport, 'summary' | 'score'>, score: numb
   const parts: string[] = []
   if (r.breakdown.productHunt > 0) parts.push(`${r.breakdown.productHunt} Product Hunt launch${r.breakdown.productHunt === 1 ? '' : 'es'} (last 90d)`)
   if (r.breakdown.ycCompanies > 0) parts.push(`${r.breakdown.ycCompanies} YC compan${r.breakdown.ycCompanies === 1 ? 'y' : 'ies'}`)
-  if (r.breakdown.internalIdeas > 0) parts.push(`${r.breakdown.internalIdeas} other founder${r.breakdown.internalIdeas === 1 ? '' : 's'} on AgentConnect`)
+  if (r.breakdown.internalIdeas > 0) parts.push(`${r.breakdown.internalIdeas} other founder${r.breakdown.internalIdeas === 1 ? '' : 's'} on Venture AI`)
   if (parts.length === 0) return `Collision ${score}/100 — no direct platform collisions detected.`
   return `Collision ${score}/100 — matched ${parts.join(', ')}.`
 }

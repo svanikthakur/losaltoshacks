@@ -205,8 +205,8 @@ async function renderPptx(
   const pptx = new PptxGenJS()
   pptx.layout = 'LAYOUT_WIDE'
   pptx.title = copy.startupName || idea.slice(0, 80)
-  pptx.author = 'AgentConnect'
-  pptx.company = 'AgentConnect'
+  pptx.author = 'Venture AI'
+  pptx.company = 'Venture AI'
 
   /* Cover slide */
   const cover = pptx.addSlide()
@@ -216,7 +216,7 @@ async function renderPptx(
     fill: { color: ACCENT }, line: { color: ACCENT, width: 0 },
   })
   cover.addText(
-    [{ text: `AGENTCONNECT · ${theme.moodDescriptor.toUpperCase()}`, options: { color: ACCENT, fontSize: 11, bold: true, fontFace: FONT_B } }],
+    [{ text: `VENTURE AI · ${theme.moodDescriptor.toUpperCase()}`, options: { color: ACCENT, fontSize: 11, bold: true, fontFace: FONT_B } }],
     { x: 0.6, y: 0.5, w: 12, h: 0.4 },
   )
   cover.addText(
@@ -297,7 +297,7 @@ async function renderPptx(
       { x: 0.6, y: 6.7, w: 6.8, h: 0.4, valign: 'top' },
     )
     s.addText(
-      [{ text: `AGENTCONNECT // ${theme.moodDescriptor.toUpperCase()}`, options: { color: INK_DIM, fontSize: 9, fontFace: FONT_B } }],
+      [{ text: `VENTURE AI // ${theme.moodDescriptor.toUpperCase()}`, options: { color: INK_DIM, fontSize: 9, fontFace: FONT_B } }],
       { x: 0.6, y: 7.05, w: 6, h: 0.3 },
     )
     s.addText(

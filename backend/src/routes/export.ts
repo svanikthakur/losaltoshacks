@@ -71,7 +71,7 @@ router.post('/vercel', async (req, res, next) => {
       projectName = deck?.startupName || r.ideaText.slice(0, 30)
       html = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${deck?.startupName || 'AgentConnect Landing'}</title>
+<title>${deck?.startupName || 'Venture AI Landing'}</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head><body class="bg-gray-950 text-white min-h-screen flex flex-col">
 <header class="py-6 px-8 border-b border-white/10">
@@ -82,14 +82,14 @@ router.post('/vercel', async (req, res, next) => {
 <main class="flex-1 flex items-center justify-center px-8">
 <div class="max-w-2xl text-center py-20">
 <h1 class="text-5xl font-bold leading-tight mb-6">${deck?.oneLiner || r.ideaText}</h1>
-<p class="text-lg text-gray-400 mb-8 max-w-xl mx-auto">${atlas?.summary || 'Validated by AgentConnect — 5 AI agents analyzed this opportunity.'}</p>
+<p class="text-lg text-gray-400 mb-8 max-w-xl mx-auto">${atlas?.summary || 'Validated by Venture AI — 5 AI agents analyzed this opportunity.'}</p>
 <p class="text-sm text-gray-500 mb-2">TAM: ${atlas?.tam || '—'}</p>
 <div id="waitlist" class="mt-8 flex gap-2 justify-center">
 <input type="email" placeholder="you@email.com" class="px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white w-64 text-sm">
 <button class="px-6 py-3 bg-white text-black rounded-lg font-medium text-sm">Join Waitlist</button>
 </div></div></main>
 <footer class="py-6 px-8 border-t border-white/10 text-center text-xs text-gray-600">
-Built with AgentConnect
+Built with Venture AI
 </footer></body></html>`
     }
 

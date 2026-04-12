@@ -519,7 +519,7 @@ function CohortBenchmark({ reportId }: { reportId: string }) {
     } catch { setState('error') }
   }
   return (
-    <Card label="Cohort Benchmarking" desc="See where you rank against other AgentConnect founders" state={state} onRun={run} accent="#14B8A6">
+    <Card label="Cohort Benchmarking" desc="See where you rank against other Venture AI founders" state={state} onRun={run} accent="#14B8A6">
       {data && (
         <div className="text-xs space-y-2">
           <div className="flex justify-between">

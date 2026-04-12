@@ -123,7 +123,7 @@ export async function runScout(
 
   const collisionBlock = `
 
-Real platform collision report (pulled just now from Product Hunt, YC, and the internal AgentConnect DB):
+Real platform collision report (pulled just now from Product Hunt, YC, and the internal Venture AI DB):
 ${JSON.stringify(
     {
       score: collision.score,

@@ -34,7 +34,7 @@ export async function deployLandingPage(
     .replace(/[^a-z0-9-]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
-    .slice(0, 50) || 'agentconnect-landing'
+    .slice(0, 50) || 'venture-ai-landing'
 
   const body = {
     name: safeName,

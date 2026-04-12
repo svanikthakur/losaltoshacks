@@ -72,7 +72,7 @@ async function runForge(reportId: string, idea: string) {
     .replace(/[^a-z0-9]+/g, '-')
     .slice(0, 32)
   const output = {
-    repoUrl: `https://github.com/agentconnect-demo/${slug || 'mvp'}`,
+    repoUrl: `https://github.com/venture-ai-demo/${slug || 'mvp'}`,
     techStack: ['Next.js', 'tRPC', 'Postgres', 'Vercel'],
     components: ['Auth', 'Dashboard', 'API layer', 'DB schema', 'Landing page'],
   }
@@ -103,7 +103,7 @@ async function runDeck(reportId: string, idea: string) {
       'Ask',
       'Vision',
     ],
-    pptxUrl: `https://storage.agentconnect.dev/decks/${reportId}.pptx`,
+    pptxUrl: `https://storage.venture-ai.dev/decks/${reportId}.pptx`,
     slidesUrl: `https://docs.google.com/presentation/d/${reportId}`,
   }
   db.updateReport(reportId, { deck_output: output, pitch_deck_url: output.pptxUrl })
@@ -148,7 +148,7 @@ export async function runPipeline(reportId: string) {
     db.updateReport(reportId, {
       status: 'complete',
       validation_score: scout.demandScore,
-      pdf_report_url: `https://storage.agentconnect.dev/reports/${reportId}.pdf`,
+      pdf_report_url: `https://storage.venture-ai.dev/reports/${reportId}.pdf`,
     })
     hub.emit(reportId, { type: 'complete' })
   } catch (err: any) {

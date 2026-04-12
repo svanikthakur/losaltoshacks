@@ -1,4 +1,4 @@
-# AgentConnect — Product Requirements Document
+# Venture AI — Product Requirements Document
 
 ## One-liner
 Five AI agents validate a startup idea in under 90 seconds and return a pitch deck, market map, MVP scaffold, VC outreach list, and investor-ready PDFs — with live email tracking, on-chain signals, and co-founder matching that no single AI tool can replicate.
@@ -6,7 +6,7 @@ Five AI agents validate a startup idea in under 90 seconds and return a pitch de
 ---
 
 ## Vision
-AgentConnect is a multi-agent AI startup validation platform. A founder drops an idea, and five specialized agents — Scout, Atlas, Forge, Deck, Connect — run in parallel and sequence to produce real, downloadable artifacts grounded in live data. The platform has persistent memory (Founder DNA), cross-user intelligence (Collision Score, Co-founder Matching), and real-world integrations (SendGrid email delivery, GitHub repo creation, Pexels imagery, Solana on-chain data) that make it fundamentally impossible to replicate with a single Claude/GPT prompt, Gamma, or Lovable.
+Venture AI is a multi-agent AI startup validation platform. A founder drops an idea, and five specialized agents — Scout, Atlas, Forge, Deck, Connect — run in parallel and sequence to produce real, downloadable artifacts grounded in live data. The platform has persistent memory (Founder DNA), cross-user intelligence (Collision Score, Co-founder Matching), and real-world integrations (SendGrid email delivery, GitHub repo creation, Pexels imagery, Solana on-chain data) that make it fundamentally impossible to replicate with a single Claude/GPT prompt, Gamma, or Lovable.
 
 ---
 
@@ -193,7 +193,7 @@ Each agent runs through `runAgentWithTimeout()` with a soft cap. If an agent exc
 6. **Real Email Delivery** — SendGrid sends actual cold emails with tracking pixel
 7. **VC Engagement Scoring** — open/click/bounce webhook events re-rank investor list in real time (15s polling)
 8. **Solana On-Chain Signals** — DeFi Llama TVL + Solana RPC stats for crypto-adjacent ideas
-9. **Platform Collision Score** — cross-references idea against Product Hunt (90d), YC directory (5,000+), and internal AgentConnect DB
+9. **Platform Collision Score** — cross-references idea against Product Hunt (90d), YC directory (5,000+), and internal Venture AI DB
 10. **Founder DNA** — persistent profile (skills, risk, location, network, hours/week, priors, industry) that personalizes every agent. Strength meter grows with each session.
 11. **Co-Founder Matching** — complementary skill vectors + adjacent-idea bonus + each match shows "currently building: [idea]"
 12. **Auto-Pivot** — fires when Atlas opportunityScore < 50. Returns 5 ranked pivot directions with new ICP, core feature, and market size estimate.
@@ -209,7 +209,7 @@ Each agent runs through `runAgentWithTimeout()` with a soft cap. If an agent exc
 20. **Co-Founder Pitch Simulator** — AI roleplays a skeptical co-founder asking 5 hard questions. Voice-enabled (Web Speech API mic per answer). Scores each answer + gives overall verdict.
 21. **Voice Pitch Coach** — record up to 60s of spoken pitch via Web Speech API. AI scores clarity (1-10), confidence (1-10), structure (1-10) with line-by-line feedback. ElevenLabs TTS generates audio playback of feedback.
 22. **Live Market Pulse** — Serper-powered signal detector for new competitor funding, launches, and market shifts since last check
-23. **Cohort Benchmarking** — percentile rank against all AgentConnect reports. Shows avg score, top decile, and an insight sentence.
+23. **Cohort Benchmarking** — percentile rank against all Venture AI reports. Shows avg score, top decile, and an insight sentence.
 24. **Warm Intro Mapper** — generates plausible warm intro paths per VC using founder DNA (e.g. "You → ex-Google colleague → portfolio founder → Partner at Sequoia"). Color-coded by strength.
 
 ### Infrastructure (6)

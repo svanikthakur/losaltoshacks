@@ -139,7 +139,7 @@ export default function BootOverlay({ onDone }: { onDone: () => void }) {
   ░██▄▄▄▄██ ░▓█  ██▓▒▓█  ▄ ▓██▒  ▐▌██▒░ ▓██▓ ░
    ▓█   ▓██▒░▒▓███▀▒░▒████▒▒██░   ▓██░  ▒██▒ ░
 `}</pre>
-          <div className="text-[10px] tracking-[0.25em] mt-1 opacity-80">AGENTCONNECT_AI</div>
+          <div className="text-[10px] tracking-[0.25em] mt-1 opacity-80">VENTURE_AI</div>
           <div className="text-[9px] tracking-[0.3em] mt-1 opacity-50">VALIDATION_ENGINE // V2.0</div>
         </div>
 

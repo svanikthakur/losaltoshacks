@@ -1,5 +1,5 @@
 /**
- * PDF generation service for AgentConnect reports.
+ * PDF generation service for Venture AI reports.
  *
  * Produces two PDF variants:
  *   1. VALIDATION_REPORT — full report with all 5 agent outputs
@@ -53,7 +53,7 @@ function drawHeader(doc: PDFKit.PDFDocument, startupName: string, subtitle: stri
     .font('Helvetica-Bold')
     .fontSize(22)
     .fillColor(WHITE)
-    .text(startupName || 'AgentConnect Report', 50, 25, { width: doc.page.width - 100 })
+    .text(startupName || 'Venture AI Report', 50, 25, { width: doc.page.width - 100 })
 
   doc
     .font('Helvetica')
@@ -80,7 +80,7 @@ function addPageNumbers(doc: PDFKit.PDFDocument) {
       .fontSize(8)
       .fillColor('#888888')
       .text(
-        `Page ${i + 1} of ${range.count}  ·  AgentConnect`,
+        `Page ${i + 1} of ${range.count}  ·  Venture AI`,
         50,
         doc.page.height - 40,
         { width: doc.page.width - 100, align: 'center' },
@@ -461,7 +461,7 @@ export async function generateValidationReport(reportId: string, report: any): P
   const stream = fs.createWriteStream(filePath)
   doc.pipe(stream)
 
-  drawHeader(doc, startupName, 'Full Validation Report  ·  AgentConnect')
+  drawHeader(doc, startupName, 'Full Validation Report  ·  Venture AI')
 
   // Overall score
   if (report.validation_score != null) {
@@ -500,7 +500,7 @@ export async function generateMarketResearch(reportId: string, report: any): Pro
   const stream = fs.createWriteStream(filePath)
   doc.pipe(stream)
 
-  drawHeader(doc, startupName, 'Market Research Report  ·  AgentConnect')
+  drawHeader(doc, startupName, 'Market Research Report  ·  Venture AI')
 
   if (report.idea) {
     label(doc, 'Idea:', report.idea)

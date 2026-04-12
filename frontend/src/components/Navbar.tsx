@@ -20,7 +20,7 @@ export default function Navbar() {
       }}
     >
       <div className="shell h-full flex items-center justify-between">
-        {/* Wordmark — bracketed AGENT CONNECT with subtitle */}
+        {/* Wordmark — bracketed VENTURE AI with subtitle */}
         <Link
           to="/"
           data-cursor="link"
@@ -31,7 +31,7 @@ export default function Navbar() {
           </span>
           <span className="flex flex-col leading-tight">
             <span className="font-display font-extrabold tracking-[0.18em] uppercase text-[15px] text-ink">
-              AGENT <span style={{ color: 'var(--color-text-2)' }}>CONNECT</span>
+              VENTURE <span style={{ color: 'var(--color-text-2)' }}>AI</span>
             </span>
             <span className="font-mono text-[8px] tracking-[0.25em] uppercase mt-0.5" style={{ color: 'var(--color-text-2)' }}>
               v2.0 // ai platform

@@ -102,7 +102,7 @@ async function fetchLlamaProtocols(): Promise<LlamaProtocol[]> {
   try {
     const res = await axios.get<LlamaProtocol[]>('https://api.llama.fi/protocols', {
       timeout: 8000,
-      headers: { 'user-agent': 'AgentConnect/1.0' },
+      headers: { 'user-agent': 'Venture AI/1.0' },
     })
     if (!Array.isArray(res.data)) return []
     return res.data

@@ -710,7 +710,7 @@ function CollisionPanel({ collision }: { collision: CollisionReport }) {
       {collision.internalIdeas.length > 0 && (
         <div>
           <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted mb-2">
-            › other AgentConnect founders building here
+            › other Venture AI founders building here
           </div>
           <div className="space-y-2">
             {collision.internalIdeas.map((m) => (
@@ -1383,17 +1383,23 @@ function ForgeCard({ forge }: { forge: ForgeOut }) {
                 <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-accent mb-2">
                   › how to use this scaffold
                 </div>
-                <p><strong>1.</strong> Download and unzip the file</p>
-                <p><strong>2.</strong> Create a new GitHub repo at <a href="https://github.com/new" target="_blank" rel="noreferrer" className="text-accent hover:underline">github.com/new</a> (name it anything)</p>
-                <p><strong>3.</strong> Open terminal in the unzipped folder and run:</p>
+                <p><strong>1.</strong> Download and unzip the file (double-click the .zip)</p>
+                <p><strong>2.</strong> Create a new <strong>empty</strong> GitHub repo at <a href="https://github.com/new" target="_blank" rel="noreferrer" className="text-accent hover:underline">github.com/new</a> — name it anything, but <strong>don't</strong> add a README or .gitignore (those are already in the scaffold)</p>
+                <p><strong>3.</strong> Open Terminal (search "Terminal" in Spotlight) and paste these commands one at a time. Replace YOUR_FOLDER_NAME, YOUR_USERNAME, and YOUR_REPO:</p>
                 <pre className="font-mono text-[10px] text-ink p-2 rounded mt-1 overflow-x-auto" style={{ background: 'rgba(0,0,0,0.3)' }}>
-{`git init
+{`cd ~/Downloads/YOUR_FOLDER_NAME
+git init
 git add .
 git commit -m "forge: initial scaffold"
+git branch -M main
 git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
 git push -u origin main`}
                 </pre>
-                <p><strong>4.</strong> Run <code className="text-accent">npm install</code> then <code className="text-accent">npm run dev</code> to start building</p>
+                <p><strong>4.</strong> Install dependencies and start the dev server:</p>
+                <pre className="font-mono text-[10px] text-ink p-2 rounded mt-1 overflow-x-auto" style={{ background: 'rgba(0,0,0,0.3)' }}>
+{`npm install
+npm run dev`}
+                </pre>
                 <p className="text-muted italic">The BLUEPRINT.md file inside has the full architecture + roadmap.</p>
               </div>
             </>
@@ -1634,8 +1640,7 @@ npm run dev`}
                 <div className="flex gap-3">
                   <span className="font-mono text-accent flex-shrink-0">03</span>
                   <span>
-                    <strong className="text-ink">Open your terminal</strong> in the unzipped folder and run these
-                    commands (replace YOUR_USERNAME and YOUR_REPO with your GitHub details):
+                    <strong className="text-ink">Open Terminal</strong> (search "Terminal" in Spotlight) and paste these commands one at a time. Replace the placeholders with your folder path and GitHub details:
                   </span>
                 </div>
               </div>
@@ -1643,7 +1648,8 @@ npm run dev`}
                 className="font-mono text-[11px] text-ink p-4 rounded overflow-x-auto leading-relaxed"
                 style={{ background: 'rgba(0,0,0,0.4)' }}
               >
-{`git init
+{`cd ~/Downloads/YOUR_FOLDER_NAME
+git init
 git add .
 git commit -m "forge: initial MVP scaffold"
 git branch -M main
