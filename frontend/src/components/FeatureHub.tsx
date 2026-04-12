@@ -1,0 +1,458 @@
+/**
+ * FeatureHub — grid of AI-powered tools shown at the bottom of every report.
+ * Each card triggers a real backend endpoint and renders the result inline.
+ */
+import { useState } from 'react'
+import { api } from '../lib/api'
+
+interface Props {
+  reportId: string
+  competitors?: Array<{ name: string }>
+}
+
+type ToolState = 'idle' | 'loading' | 'done' | 'error'
+
+export default function FeatureHub({ reportId, competitors }: Props) {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-baseline justify-between">
+        <div>
+          <div
+            className="font-mono text-[10px] uppercase tracking-[0.2em] mb-2"
+            style={{ color: 'var(--color-charge)' }}
+          >
+            // AI TOOLS
+          </div>
+          <h2 className="font-display text-3xl md:text-4xl font-bold uppercase tracking-[-0.02em]">
+            Feature hub
+          </h2>
+        </div>
+      </div>
+
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ABHeadlines reportId={reportId} />
+        <RevenueModels reportId={reportId} />
+        <SprintPlan reportId={reportId} />
+        <DueDiligence reportId={reportId} />
+        <CompetitorDive reportId={reportId} competitors={competitors} />
+        <CoFounderSim reportId={reportId} />
+        <MarketPulse reportId={reportId} />
+        <CohortBenchmark reportId={reportId} />
+        <DownloadReports reportId={reportId} />
+        <ComingSoon label="Voice Pitch Coach" desc="Record your 60s pitch and get AI scoring" />
+        <ComingSoon label="Warm Intro Mapper" desc="Map LinkedIn paths to target VCs" />
+      </div>
+    </div>
+  )
+}
+
+function Card({
+  label,
+  desc,
+  accent,
+  state,
+  onRun,
+  children,
+}: {
+  label: string
+  desc: string
+  accent?: string
+  state: ToolState
+  onRun: () => void
+  children?: React.ReactNode
+}) {
+  const ac = accent || 'var(--color-charge)'
+  return (
+    <div
+      className="rounded-xl border p-5 flex flex-col"
+      style={{
+        borderColor: state === 'done' ? `${ac}44` : 'var(--color-border-1)',
+        background: state === 'done' ? `${ac}08` : 'var(--color-surface-1)',
+      }}
+    >
+      <div className="font-mono text-[9px] uppercase tracking-[0.18em] mb-1" style={{ color: ac }}>
+        {label}
+      </div>
+      <div className="text-sm text-ink-dim mb-4 flex-1">{desc}</div>
+
+      {state === 'idle' && (
+        <button
+          onClick={onRun}
+          className="w-full font-mono text-[10px] uppercase tracking-[0.15em] py-2 rounded transition"
+          style={{ background: ac, color: 'var(--color-void)', border: `1px solid ${ac}` }}
+        >
+          Run →
+        </button>
+      )}
+      {state === 'loading' && (
+        <div className="w-full text-center font-mono text-[10px] uppercase tracking-[0.15em] py-2 animate-pulse" style={{ color: ac }}>
+          generating…
+        </div>
+      )}
+      {state === 'error' && (
+        <button
+          onClick={onRun}
+          className="w-full font-mono text-[10px] uppercase tracking-[0.15em] py-2 rounded"
+          style={{ color: '#FB7185', border: '1px solid rgba(251,113,133,0.4)' }}
+        >
+          retry →
+        </button>
+      )}
+      {state === 'done' && children && <div className="mt-2 space-y-2">{children}</div>}
+    </div>
+  )
+}
+
+function ComingSoon({ label, desc }: { label: string; desc: string }) {
+  return (
+    <div
+      className="rounded-xl border p-5 opacity-50"
+      style={{ borderColor: 'var(--color-border-1)', background: 'var(--color-surface-1)' }}
+    >
+      <div className="font-mono text-[9px] uppercase tracking-[0.18em] mb-1 text-muted">{label}</div>
+      <div className="text-sm text-ink-dim mb-4">{desc}</div>
+      <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted text-center py-2">
+        coming soon
+      </div>
+    </div>
+  )
+}
+
+/* ─── A/B Headlines ─── */
+function ABHeadlines({ reportId }: { reportId: string }) {
+  const [state, setState] = useState<ToolState>('idle')
+  const [data, setData] = useState<any>(null)
+  const run = async () => {
+    setState('loading')
+    try {
+      const r = await api.abHeadlines(reportId)
+      setData(r)
+      setState('done')
+    } catch { setState('error') }
+  }
+  return (
+    <Card label="A/B Headline Tester" desc="5 one-liner variations scored on clarity, appeal & memorability" state={state} onRun={run} accent="#22D3EE">
+      {data?.headlines?.map((h: any, i: number) => (
+        <div key={i} className="flex items-baseline justify-between gap-2 text-xs">
+          <span className="text-ink flex-1 line-clamp-2">"{h.text}"</span>
+          <span className="font-mono text-accent flex-shrink-0">{h.totalScore}</span>
+        </div>
+      ))}
+    </Card>
+  )
+}
+
+/* ─── Revenue Models ─── */
+function RevenueModels({ reportId }: { reportId: string }) {
+  const [state, setState] = useState<ToolState>('idle')
+  const [data, setData] = useState<any>(null)
+  const run = async () => {
+    setState('loading')
+    try {
+      const r = await api.revenueModels(reportId)
+      setData(r)
+      setState('done')
+    } catch { setState('error') }
+  }
+  return (
+    <Card label="Revenue Model Generator" desc="5 monetization strategies with MRR projections" state={state} onRun={run} accent="#A855F7">
+      {data?.models?.map((m: any, i: number) => (
+        <div key={i} className="text-xs border-b border-white/5 pb-2">
+          <div className="flex justify-between">
+            <span className="font-mono uppercase text-accent text-[10px]">{m.type}</span>
+            <span className="text-muted">{m.projectedMrr?.at1000}/mo @1k users</span>
+          </div>
+          <div className="text-ink-dim mt-1 line-clamp-2">{m.description}</div>
+        </div>
+      ))}
+    </Card>
+  )
+}
+
+/* ─── Sprint Plan ─── */
+function SprintPlan({ reportId }: { reportId: string }) {
+  const [state, setState] = useState<ToolState>('idle')
+  const [data, setData] = useState<any>(null)
+  const run = async () => {
+    setState('loading')
+    try {
+      const r = await api.sprintPlan(reportId)
+      setData(r)
+      setState('done')
+    } catch { setState('error') }
+  }
+  return (
+    <Card label="30-Day Sprint Planner" desc="Week-by-week execution plan with tasks & guides" state={state} onRun={run} accent="#F59E0B">
+      {data?.weeks?.map((w: any) => (
+        <div key={w.week} className="text-xs">
+          <div className="font-mono text-accent text-[10px]">Week {w.week}: {w.theme}</div>
+          <ul className="text-ink-dim mt-1 space-y-0.5">
+            {w.tasks?.slice(0, 3).map((t: any, j: number) => (
+              <li key={j} className="flex gap-1">
+                <span className="text-muted">›</span> {t.task} <span className="text-muted ml-auto">{t.timeEstimate}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </Card>
+  )
+}
+
+/* ─── Due Diligence ─── */
+function DueDiligence({ reportId }: { reportId: string }) {
+  const [state, setState] = useState<ToolState>('idle')
+  const [data, setData] = useState<any>(null)
+  const run = async () => {
+    setState('loading')
+    try {
+      const r = await api.dueDiligence(reportId)
+      setData(r)
+      setState('done')
+    } catch { setState('error') }
+  }
+  return (
+    <Card label="Due Diligence Checklist" desc="Investor-ready checklist for your stage & industry" state={state} onRun={run} accent="#10B981">
+      {data?.items && (
+        <div className="text-xs text-ink-dim">
+          {data.items.length} items across{' '}
+          {[...new Set(data.items.map((i: any) => i.category))].length} categories
+          <div className="mt-2 space-y-1">
+            {data.items.slice(0, 5).map((item: any, i: number) => (
+              <div key={i} className="flex gap-2 items-start">
+                <span className="text-muted font-mono text-[9px] uppercase w-14 flex-shrink-0">{item.category}</span>
+                <span className="flex-1">{item.item}</span>
+              </div>
+            ))}
+            {data.items.length > 5 && <div className="text-muted">+{data.items.length - 5} more…</div>}
+          </div>
+        </div>
+      )}
+    </Card>
+  )
+}
+
+/* ─── Competitor Deep Dive ─── */
+function CompetitorDive({ reportId, competitors }: { reportId: string; competitors?: Array<{ name: string }> }) {
+  const [state, setState] = useState<ToolState>('idle')
+  const [data, setData] = useState<any>(null)
+  const [target, setTarget] = useState(competitors?.[0]?.name || '')
+  const run = async () => {
+    if (!target) return
+    setState('loading')
+    try {
+      const r = await api.competitorDeepDive(reportId, target)
+      setData(r)
+      setState('done')
+    } catch { setState('error') }
+  }
+  return (
+    <Card label="Competitor Deep Dive" desc="Full teardown: pricing, weaknesses, positioning" state={state} onRun={run} accent="#EF4444">
+      {state === 'idle' && competitors && competitors.length > 0 && (
+        <select
+          value={target}
+          onChange={(e) => setTarget(e.target.value)}
+          className="w-full text-xs rounded px-2 py-1.5 mb-2 font-mono"
+          style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-1)', border: '1px solid var(--color-border-1)' }}
+        >
+          {competitors.map((c) => (
+            <option key={c.name} value={c.name}>{c.name}</option>
+          ))}
+        </select>
+      )}
+      {data && (
+        <div className="text-xs space-y-2">
+          <div><span className="text-muted">pricing:</span> <span className="text-ink-dim">{data.pricing}</span></div>
+          {data.weaknesses?.slice(0, 3).map((w: string, i: number) => (
+            <div key={i} className="text-ink-dim">− {w}</div>
+          ))}
+          <div className="text-accent italic">{data.positioningAdvice}</div>
+        </div>
+      )}
+    </Card>
+  )
+}
+
+/* ─── Co-Founder Sim ─── */
+function CoFounderSim({ reportId }: { reportId: string }) {
+  const [state, setState] = useState<ToolState>('idle')
+  const [questions, setQuestions] = useState<any[]>([])
+  const [answers, setAnswers] = useState<string[]>([])
+  const [result, setResult] = useState<any>(null)
+  const [phase, setPhase] = useState<'start' | 'answer' | 'scored'>('start')
+
+  const startSim = async () => {
+    setState('loading')
+    try {
+      const r = await api.cofounderSimStart(reportId, 'technical')
+      setQuestions(r.questions || [])
+      setAnswers(new Array(r.questions?.length || 5).fill(''))
+      setPhase('answer')
+      setState('done')
+    } catch { setState('error') }
+  }
+
+  const scoreSim = async () => {
+    setState('loading')
+    try {
+      const r = await api.cofounderSimScore(reportId, questions, answers)
+      setResult(r)
+      setPhase('scored')
+      setState('done')
+    } catch { setState('error') }
+  }
+
+  return (
+    <Card label="Co-Founder Pitch Sim" desc="Roleplay a co-founder recruitment conversation" state={phase === 'start' ? state : 'done'} onRun={startSim} accent="#F472B6">
+      {phase === 'answer' && (
+        <div className="space-y-3">
+          {questions.map((q: any, i: number) => (
+            <div key={i}>
+              <div className="text-xs text-ink mb-1 font-medium">{q.q}</div>
+              <textarea
+                className="w-full text-xs rounded px-2 py-1.5 resize-none"
+                style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-1)', border: '1px solid var(--color-border-1)' }}
+                rows={2}
+                value={answers[i]}
+                onChange={(e) => {
+                  const next = [...answers]
+                  next[i] = e.target.value
+                  setAnswers(next)
+                }}
+                placeholder="Your answer..."
+              />
+            </div>
+          ))}
+          <button
+            onClick={scoreSim}
+            className="w-full font-mono text-[10px] uppercase tracking-[0.15em] py-2 rounded"
+            style={{ background: '#F472B6', color: 'var(--color-void)' }}
+          >
+            Score my answers →
+          </button>
+        </div>
+      )}
+      {phase === 'scored' && result && (
+        <div className="text-xs space-y-2">
+          <div className="flex justify-between items-baseline">
+            <span className="text-muted">Overall score</span>
+            <span className="font-display text-2xl font-bold" style={{ color: result.overallScore >= 60 ? '#00FF41' : result.overallScore >= 30 ? '#FBBF24' : '#FB7185' }}>
+              {result.overallScore}/100
+            </span>
+          </div>
+          <div className="text-ink-dim italic">{result.verdict}</div>
+        </div>
+      )}
+    </Card>
+  )
+}
+
+/* ─── Market Pulse ─── */
+function MarketPulse({ reportId }: { reportId: string }) {
+  const [state, setState] = useState<ToolState>('idle')
+  const [data, setData] = useState<any>(null)
+  const run = async () => {
+    setState('loading')
+    try {
+      const r = await api.marketPulse(reportId)
+      setData(r)
+      setState('done')
+    } catch { setState('error') }
+  }
+  return (
+    <Card label="Live Market Pulse" desc="Detect new competitors, funding rounds & market shifts" state={state} onRun={run} accent="#6366F1">
+      {data && (
+        <div className="text-xs space-y-2">
+          {data.alerts?.length === 0 && <div className="text-muted">No new alerts — market is stable.</div>}
+          {data.alerts?.map((a: any, i: number) => (
+            <div key={i} className="flex gap-2 items-start">
+              <span
+                className="font-mono text-[9px] uppercase px-1.5 py-0.5 rounded-full flex-shrink-0"
+                style={{
+                  background: a.impact === 'negative' ? 'rgba(251,113,133,0.12)' : a.impact === 'positive' ? 'rgba(0,255,65,0.12)' : 'rgba(255,255,255,0.06)',
+                  color: a.impact === 'negative' ? '#FB7185' : a.impact === 'positive' ? '#00FF41' : '#B3ADA2',
+                }}
+              >
+                {a.type}
+              </span>
+              <span className="text-ink-dim">{a.detail}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  )
+}
+
+/* ─── Cohort Benchmark ─── */
+function CohortBenchmark({ reportId }: { reportId: string }) {
+  const [state, setState] = useState<ToolState>('idle')
+  const [data, setData] = useState<any>(null)
+  const run = async () => {
+    setState('loading')
+    try {
+      const r = await api.cohortBenchmarks(reportId)
+      setData(r)
+      setState('done')
+    } catch { setState('error') }
+  }
+  return (
+    <Card label="Cohort Benchmarking" desc="See where you rank against other AgentConnect founders" state={state} onRun={run} accent="#14B8A6">
+      {data && (
+        <div className="text-xs space-y-2">
+          <div className="flex justify-between">
+            <span className="text-muted">Percentile</span>
+            <span className="font-display text-xl font-bold" style={{ color: 'var(--color-charge)' }}>
+              Top {100 - (data.percentile || 0)}%
+            </span>
+          </div>
+          <div className="flex justify-between text-muted">
+            <span>Cohort avg</span>
+            <span>{data.avgScore}/10</span>
+          </div>
+          <div className="flex justify-between text-muted">
+            <span>Top decile</span>
+            <span>{data.topDecileScore}/10</span>
+          </div>
+          {data.insight && <div className="text-ink-dim italic mt-2">{data.insight}</div>}
+        </div>
+      )}
+    </Card>
+  )
+}
+
+/* ─── Download Reports ─── */
+function DownloadReports({ reportId }: { reportId: string }) {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('ac_token') : ''
+  return (
+    <div
+      className="rounded-xl border p-5 flex flex-col"
+      style={{ borderColor: 'var(--color-border-1)', background: 'var(--color-surface-1)' }}
+    >
+      <div className="font-mono text-[9px] uppercase tracking-[0.18em] mb-1" style={{ color: 'var(--color-charge)' }}>
+        Download reports
+      </div>
+      <div className="text-sm text-ink-dim mb-4 flex-1">Professional PDFs with graphs & data</div>
+      <div className="space-y-2">
+        <a
+          href={`/api/export/validation-report/${reportId}?token=${token}`}
+          target="_blank"
+          rel="noreferrer"
+          className="block w-full text-center font-mono text-[10px] uppercase tracking-[0.15em] py-2 rounded"
+          style={{ background: 'var(--color-charge)', color: 'var(--color-void)', border: '1px solid var(--color-charge)' }}
+        >
+          Validation Report .pdf ↓
+        </a>
+        <a
+          href={`/api/export/market-research/${reportId}?token=${token}`}
+          target="_blank"
+          rel="noreferrer"
+          className="block w-full text-center font-mono text-[10px] uppercase tracking-[0.15em] py-2 rounded"
+          style={{ color: 'var(--color-charge)', border: '1px solid var(--color-charge)' }}
+        >
+          Market Research .pdf ↓
+        </a>
+      </div>
+    </div>
+  )
+}

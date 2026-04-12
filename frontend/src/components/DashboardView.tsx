@@ -11,6 +11,7 @@
 import { useEffect, useState } from 'react'
 import BorderGlow from './BorderGlow'
 import { api } from '../lib/api'
+import FeatureHub from './FeatureHub'
 
 type Maybe<T> = T | undefined | null
 
@@ -314,6 +315,12 @@ export default function DashboardView({ report }: { report: ReportLike }) {
         {Array.isArray(connect.topVCs) && connect.topVCs.length > 0 && (
           <InvestorList investors={connect.topVCs} reportId={report.id} />
         )}
+
+        {/* ── SECTION 5: Feature Hub — all AI tools ── */}
+        <FeatureHub
+          reportId={report.id}
+          competitors={Array.isArray(scout.competitors) ? scout.competitors : undefined}
+        />
       </div>
     </main>
   )

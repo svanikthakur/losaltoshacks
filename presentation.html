@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AGENTCONNECT // PRESENTATION</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=Barlow:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: 13.333in 7.5in; margin: 0; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --void: #07090D;
+    --surface-1: #0C0F15;
+    --surface-2: #111620;
+    --surface-3: #171E2C;
+    --charge: #00FF41;
+    --charge-mid: rgba(0, 255, 65, 0.18);
+    --charge-low: rgba(0, 255, 65, 0.06);
+    --steel: #3D7FA8;
+    --text: #ECE8DF;
+    --text-2: #B3ADA2;
+    --text-3: #7E7A72;
+    --border: rgba(0, 255, 65, 0.22);
+    --border-strong: rgba(0, 255, 65, 0.55);
+  }
+
+  html, body {
+    background: var(--void);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    font-weight: 300;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .slide {
+    width: 13.333in;
+    height: 7.5in;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+    background: var(--void);
+    padding: 0.7in 0.8in;
+  }
+  .slide:last-child { page-break-after: auto; }
+
+  /* Scan lines */
+  .slide::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.28) 3px,
+      rgba(0,0,0,0.28) 4px
+    );
+    pointer-events: none;
+    z-index: 30;
+  }
+
+  /* Grain */
+  .slide::after {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' seed='5'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 1 0 0 0 0 0.25 0 0 0 0.5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    mix-blend-mode: overlay;
+    opacity: 0.22;
+    pointer-events: none;
+    z-index: 31;
+  }
+
+  /* Corner brackets */
+  .corner { position: absolute; width: 22px; height: 22px; border: 1px solid var(--charge); z-index: 20; }
+  .c-tl { top: 26px; left: 26px; border-right: none; border-bottom: none; }
+  .c-tr { top: 26px; right: 26px; border-left: none; border-bottom: none; }
+  .c-bl { bottom: 26px; left: 26px; border-right: none; border-top: none; }
+  .c-br { bottom: 26px; right: 26px; border-left: none; border-top: none; }
+
+  /* HUD */
+  .hud-top, .hud-bottom {
+    position: absolute; left: 58px; right: 58px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: rgba(0, 255, 65, 0.75);
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    z-index: 25;
+  }
+  .hud-top { top: 34px; }
+  .hud-bottom { bottom: 34px; }
+  .hud-bottom .hud-dots { color: rgba(0, 255, 65, 0.4); letter-spacing: 0.4em; }
+
+  /* Typography */
+  h1, h2, h3, .display {
+    font-family: 'Barlow Condensed', sans-serif;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    line-height: 0.88;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.12em; }
+
+  /* Background image layer */
+  .bg-img {
+    position: absolute; inset: 0;
+    z-index: 1;
+    background-size: cover;
+    background-position: center;
+    filter: grayscale(1) contrast(1.15) brightness(0.55);
+    opacity: 0.28;
+  }
+  .bg-img.tint {
+    mix-blend-mode: screen;
+  }
+  .bg-tint {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(0, 255, 65, 0.12) 0%, transparent 55%),
+      linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.85) 100%);
+    z-index: 2;
+  }
+
+  .content {
+    position: relative;
+    z-index: 15;
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+  }
+
+  /* ========== SLIDE 1 ========== */
+  .cover .bg-img {
+    background-image: url('https://picsum.photos/seed/matrixgrid/1920/1080');
+    opacity: 0.32;
+  }
+  .cover .content {
+    justify-content: center;
+    align-items: flex-start;
+  }
+  .cover .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--charge);
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    padding: 10px 16px;
+    border: 1px solid var(--border-strong);
+    display: inline-block;
+  }
+  .cover h1 {
+    font-size: 190px;
+    color: var(--text);
+    line-height: 0.82;
+    position: relative;
+  }
+  .cover h1 .glitch {
+    position: relative;
+    display: inline-block;
+    text-shadow:
+      2px 0 rgba(255, 0, 128, 0.7),
+      -2px 0 rgba(0, 255, 65, 0.75),
+      0 0 22px rgba(0, 255, 65, 0.25);
+  }
+  .cover .tag {
+    margin-top: 38px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 30px;
+    font-weight: 400;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    max-width: 900px;
+    line-height: 1.2;
+  }
+  .cover .tag .accent { color: var(--charge); }
+  .cover .sub {
+    margin-top: 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  /* ========== SLIDE 2 — PROBLEM ========== */
+  .problem .bg-img { background-image: url('https://picsum.photos/seed/terminal9/1920/1080'); opacity: 0.18; }
+  .problem h2 { font-size: 120px; color: var(--charge); margin-bottom: 26px; }
+  .problem .body { display: grid; grid-template-columns: 1.25fr 1fr; gap: 68px; flex: 1; align-items: center; }
+  .problem p.lead { font-size: 24px; line-height: 1.35; color: var(--text); font-weight: 300; max-width: 540px; }
+  .problem .stats { display: flex; flex-direction: column; gap: 22px; }
+  .stat-row { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--border); padding-bottom: 14px; }
+  .stat-row .num { font-family: 'Barlow Condensed', sans-serif; font-size: 64px; font-weight: 800; color: var(--charge); line-height: 1; }
+  .stat-row .label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.15em; text-align: right; max-width: 220px; }
+
+  /* ========== SLIDE 3 — SOLUTION / PIPELINE ========== */
+  .solution .bg-img { background-image: url('https://picsum.photos/seed/circuit77/1920/1080'); opacity: 0.16; }
+  .solution h2 { font-size: 110px; color: var(--text); margin-bottom: 16px; }
+  .solution h2 .accent { color: var(--charge); }
+  .solution .sub { font-size: 20px; color: var(--text-2); max-width: 760px; font-weight: 300; margin-bottom: 46px; line-height: 1.4; }
+  .pipeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; flex: 1; align-items: stretch; }
+  .pipe-card {
+    border: 1px solid var(--border);
+    padding: 20px 18px;
+    position: relative;
+    background: rgba(0, 255, 65, 0.02);
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .pipe-card .idx {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--charge);
+    letter-spacing: 0.2em;
+    margin-bottom: 14px;
+  }
+  .pipe-card h3 {
+    font-size: 36px;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  .pipe-card .role {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--charge);
+    letter-spacing: 0.12em;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+  .pipe-card p {
+    font-size: 12px;
+    color: var(--text-2);
+    line-height: 1.45;
+  }
+  .pipe-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; width: 36px; height: 2px;
+    background: var(--charge);
+  }
+
+  /* ========== AGENT SLIDES ========== */
+  .agent .content { display: grid; grid-template-columns: 1.25fr 1fr; gap: 58px; }
+  .agent .left { display: flex; flex-direction: column; justify-content: center; }
+  .agent .agent-idx {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--charge);
+    letter-spacing: 0.3em;
+    margin-bottom: 22px;
+  }
+  .agent h2 { font-size: 150px; color: var(--text); margin-bottom: 10px; }
+  .agent .role {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--charge);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 30px;
+  }
+  .agent p.lead {
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--text-2);
+    max-width: 520px;
+    margin-bottom: 26px;
+    font-weight: 300;
+  }
+  .agent .feat-list { list-style: none; display: flex; flex-direction: column; gap: 10px; max-width: 540px; }
+  .agent .feat-list li {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding-left: 22px;
+    position: relative;
+    line-height: 1.5;
+  }
+  .agent .feat-list li::before {
+    content: '>>';
+    position: absolute;
+    left: 0; top: 0;
+    color: var(--charge);
+    font-weight: 700;
+  }
+  .agent .right {
+    position: relative;
+    border: 1px solid var(--border);
+    padding: 22px;
+    display: flex; flex-direction: column;
+    background: rgba(0, 0, 0, 0.3);
+  }
+  .agent .right::before { content: ''; position: absolute; top: -1px; left: -1px; width: 44px; height: 2px; background: var(--charge); }
+  .agent .right::after { content: ''; position: absolute; bottom: -1px; right: -1px; width: 44px; height: 2px; background: var(--charge); }
+  .agent .img-pane {
+    flex: 1;
+    background-size: cover;
+    background-position: center;
+    filter: grayscale(1) contrast(1.2) brightness(0.7);
+    opacity: 0.8;
+    margin-bottom: 18px;
+    position: relative;
+  }
+  .agent .img-pane::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 55%, rgba(0, 255, 65, 0.12) 100%);
+    mix-blend-mode: screen;
+  }
+  .agent .output-box {
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+  .agent .output-box .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--charge);
+    letter-spacing: 0.2em;
+    margin-bottom: 8px;
+  }
+  .agent .output-box .val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-2);
+    line-height: 1.55;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* Scout */
+  .scout .right .img-pane { background-image: url('https://picsum.photos/seed/datastream88/1200/1200'); }
+  /* Atlas */
+  .atlas .right .img-pane { background-image: url('https://picsum.photos/seed/globemap42/1200/1200'); }
+  /* Forge */
+  .forge .right .img-pane { background-image: url('https://picsum.photos/seed/codearch33/1200/1200'); }
+  /* Deck */
+  .deck .right .img-pane { background-image: url('https://picsum.photos/seed/slidedeck7/1200/1200'); }
+  /* Connect */
+  .connect .right .img-pane { background-image: url('https://picsum.photos/seed/networkgrid21/1200/1200'); }
+
+  /* ========== SLIDE 9 — BACKGROUND AGENTS ========== */
+  .bg-agents .bg-img { background-image: url('https://picsum.photos/seed/meshnet55/1920/1080'); opacity: 0.14; }
+  .bg-agents h2 { font-size: 110px; color: var(--text); margin-bottom: 6px; }
+  .bg-agents h2 .accent { color: var(--charge); }
+  .bg-agents .sub {
+    font-size: 16px; color: var(--text-2); max-width: 820px; margin-bottom: 30px; line-height: 1.4;
+    font-family: 'Barlow', sans-serif; font-weight: 300;
+  }
+  .bg-grid { display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 16px; flex: 1; }
+  .bg-card {
+    border: 1px solid var(--border);
+    padding: 22px 24px;
+    position: relative;
+    background: rgba(0, 255, 65, 0.02);
+    display: flex; flex-direction: column;
+  }
+  .bg-card::before { content: ''; position: absolute; top: 0; left: 0; width: 48px; height: 2px; background: var(--charge); }
+  .bg-card .name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 52px;
+    font-weight: 800;
+    color: var(--text);
+    text-transform: uppercase;
+    line-height: 0.9;
+    margin-bottom: 4px;
+  }
+  .bg-card .role {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--charge);
+    letter-spacing: 0.2em;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+  .bg-card p {
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.45;
+    font-weight: 300;
+  }
+  .bg-card .tag {
+    margin-top: auto;
+    padding-top: 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-3);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border-top: 1px dashed rgba(0, 255, 65, 0.18);
+  }
+
+  /* ========== SLIDE 10 — MOATS / CLOSING ========== */
+  .closing .bg-img { background-image: url('https://picsum.photos/seed/vaultgrid99/1920/1080'); opacity: 0.22; }
+  .closing h2 { font-size: 105px; color: var(--text); margin-bottom: 6px; }
+  .closing h2 .accent { color: var(--charge); }
+  .closing .sub { font-size: 16px; color: var(--text-2); max-width: 780px; margin-bottom: 26px; line-height: 1.4; font-weight: 300; }
+  .moat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 30px; }
+  .moat {
+    border: 1px solid var(--border);
+    padding: 14px 14px 16px;
+    background: rgba(0, 255, 65, 0.03);
+    min-height: 88px;
+    position: relative;
+  }
+  .moat .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--charge);
+    letter-spacing: 0.22em;
+    margin-bottom: 6px;
+  }
+  .moat .title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: uppercase;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .moat p {
+    font-size: 10px;
+    color: var(--text-2);
+    line-height: 1.4;
+    font-weight: 300;
+  }
+  .cta {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-top: 1px solid var(--border);
+    padding-top: 22px;
+  }
+  .cta .ctx {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    max-width: 460px;
+    line-height: 1.6;
+  }
+  .cta .btn {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 46px;
+    font-weight: 800;
+    color: var(--void);
+    background: var(--charge);
+    padding: 14px 40px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: 0 0 60px rgba(0, 255, 65, 0.35);
+    display: inline-block;
+  }
+
+  /* Shared page label */
+  .page-num { color: var(--charge); }
+</style>
+</head>
+<body>
+
+<!-- ================= SLIDE 1 — COVER ================= -->
+<section class="slide cover">
+  <div class="bg-img"></div>
+  <div class="bg-tint"></div>
+  <div class="corner c-tl"></div><div class="corner c-tr"></div>
+  <div class="corner c-bl"></div><div class="corner c-br"></div>
+  <div class="hud-top">
+    <span>&gt;&gt; AGENTCONNECT.SYS // BOOT OK</span>
+    <span>SESSION // 2026.04.11</span>
+  </div>
+  <div class="hud-bottom">
+    <span class="page-num">[ 01 / 10 ]</span>
+    <span class="hud-dots">· · · · · · · · · ·</span>
+    <span>STATUS :: READY</span>
+  </div>
+  <div class="content">
+    <span class="kicker">// AI AGENT ORCHESTRATION</span>
+    <h1><span class="glitch">AGENT</span><br><span class="glitch">CONNECT</span></h1>
+    <div class="tag">VALIDATE A STARTUP IDEA IN <span class="accent">10 MINUTES.</span><br>FIVE AGENTS. ONE CLICK. FIVE REAL FILES OUT.</div>
+    <div class="sub">// TURN YOUR IDEA INTO A PITCH — INTERACTIVE REPORT, PITCH DECK, MVP REPO, VC LIST</div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 2 — THE PROBLEM ================= -->
+<section class="slide problem">
+  <div class="bg-img"></div>
+  <div class="bg-tint"></div>
+  <div class="corner c-tl"></div><div class="corner c-tr"></div>
+  <div class="corner c-bl"></div><div class="corner c-br"></div>
+  <div class="hud-top">
+    <span>&gt;&gt; DIAGNOSTIC // FOUNDER PAIN</span>
+    <span>FRAME // 02</span>
+  </div>
+  <div class="hud-bottom">
+    <span class="page-num">[ 02 / 10 ]</span>
+    <span class="hud-dots">· · · · · · · · · ·</span>
+    <span>ERROR :: MANUAL_VALIDATION_TIMEOUT</span>
+  </div>
+  <div class="content">
+    <h2>THE<br>PROBLEM.</h2>
+    <div class="body">
+      <p class="lead">Founders burn months before they even know if an idea is real. Manual market research, cold-email spreadsheets, scaffolding code from scratch, rewriting decks at 3am. Most ideas die in the deck draft — not in the market.</p>
+      <div class="stats">
+        <div class="stat-row"><span class="num">73%</span><span class="label">of early ideas never<br>survive first validation</span></div>
+        <div class="stat-row"><span class="num">4mo</span><span class="label">avg time from idea<br>to first VC meeting</span></div>
+        <div class="stat-row"><span class="num">11+</span><span class="label">tools a typical founder<br>juggles pre-seed</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 3 — THE SOLUTION / PIPELINE ================= -->
+<section class="slide solution">
+  <div class="bg-img"></div>
+  <div class="bg-tint"></div>
+  <div class="corner c-tl"></div><div class="corner c-tr"></div>
+  <div class="corner c-bl"></div><div class="corner c-br"></div>
+  <div class="hud-top">
+    <span>&gt;&gt; SYSTEM // FIVE-AGENT PIPELINE</span>
+    <span>PARALLEL :: 02 || SEQ :: 03</span>
+  </div>
+  <div class="hud-bottom">
+    <span class="page-num">[ 03 / 10 ]</span>
+    <span class="hud-dots">· · · · · · · · · ·</span>
+    <span>T-MINUS :: UNDER TEN MINUTES</span>
+  </div>
+  <div class="content">
+    <h2>FIVE AGENTS.<br>ONE <span class="accent">CLICK.</span></h2>
+    <p class="sub">Five specialist agents interrogate your thesis in parallel, then hand off to build, narrate, and match. A pitch deck, MVP repository, market report, and ranked investor list — delivered in one orchestrated pipeline.</p>
+    <div class="pipeline">
+      <div class="pipe-card">
+        <div>
+          <div class="idx">// 01 — PARALLEL</div>
+          <h3>SCOUT</h3>
+          <div class="role">DEMAND VALIDATOR</div>
+        </div>
+        <p>Serper + Trends + Solana on-chain signals. Real market demand, collision detection, live competitors.</p>
+      </div>
+      <div class="pipe-card">
+        <div>
+          <div class="idx">// 02 — PARALLEL</div>
+          <h3>ATLAS</h3>
+          <div class="role">MARKET TOPOLOGY</div>
+        </div>
+        <p>TAM · SAM · SOM sized bottom-up. Regional opportunity map, ICP segments, tailwinds and headwinds.</p>
+      </div>
+      <div class="pipe-card">
+        <div>
+          <div class="idx">// 03 — SEQUENCE</div>
+          <h3>FORGE</h3>
+          <div class="role">RUNTIME SCAFFOLD</div>
+        </div>
+        <p>Tech stack, architecture, 12-week roadmap. Generates a real GitHub repo ready to ship.</p>
+      </div>
+      <div class="pipe-card">
+        <div>
+          <div class="idx">// 04 — SEQUENCE</div>
+          <h3>DECK</h3>
+          <div class="role">NARRATIVE EXPORT</div>
+        </div>
+        <p>Ten-slide Sequoia format. Dynamic theming, real Pexels imagery, .pptx binary delivered.</p>
+      </div>
+      <div class="pipe-card">
+        <div>
+          <div class="idx">// 05 — SEQUENCE</div>
+          <h3>CONNECT</h3>
+          <div class="role">CAPITAL MATCH</div>
+        </div>
+        <p>Ranks ten VCs by thesis fit. Personalized outreach, readiness score, fundraising strategy.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 4 — SCOUT ================= -->
+<section class="slide agent scout">
+  <div class="bg-img" style="background-image:url('https://picsum.photos/seed/radar12/1920/1080'); opacity:0.12;"></div>
+  <div class="bg-tint"></div>
+  <div class="corner c-tl"></div><div class="corner c-tr"></div>
+  <div class="corner c-bl"></div><div class="corner c-br"></div>
+  <div class="hud-top">
+    <span>&gt;&gt; AGENT // SCOUT.EXE</span>
+    <span>TYPE :: PARALLEL</span>
+  </div>
+  <div class="hud-bottom">
+    <span class="page-num">[ 04 / 10 ]</span>
+    <span class="hud-dots">· · · · · · · · · ·</span>
+    <span>OUTPUT :: MARKET_BRIEF.JSON</span>
+  </div>
+  <div class="content">
+    <div class="left">
+      <div class="agent-idx">// AGENT 01 OF 09</div>
+      <h2>SCOUT</h2>
+      <div class="role">DEMAND VALIDATOR</div>
+      <p class="lead">Scout scrapes the real web via Serper, cross-references Google Trends, and pulls live Solana on-chain signals for any crypto-adjacent idea. It synthesizes a grounded market brief against actual founder quotes — not hallucinated taglines.</p>
+      <ul class="feat-list">
+        <li>Live competitor discovery via Serper search</li>
+        <li>Google Trends demand curves &amp; velocity</li>
+        <li>Solana RPC + DeFi Llama on-chain signals</li>
+        <li>Collision detection vs. Product Hunt + YC DB</li>
+        <li>Collision score 0–100, differentiation angles</li>
+      </ul>
+    </div>
+    <div class="right">
+      <div class="img-pane"></div>
+      <div class="output-box">
+        <div class="label">// RETURNS</div>
+        <div class="val">competitors[] · collisionScore · demandLevel · differentiationAngles[] · marketSignals[] · marketArticle · sources[] · onchain</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 5 — ATLAS ================= -->
+<section class="slide agent atlas">
+  <div class="bg-img" style="background-image:url('https://picsum.photos/seed/atlasworld7/1920/1080'); opacity:0.12;"></div>
+  <div class="bg-tint"></div>
+  <div class="corner c-tl"></div><div class="corner c-tr"></div>
+  <div class="corner c-bl"></div><div class="corner c-br"></div>
+  <div class="hud-top">
+    <span>&gt;&gt; AGENT // ATLAS.EXE</span>
+    <span>TYPE :: PARALLEL</span>
+  </div>
+  <div class="hud-bottom">
+    <span class="page-num">[ 05 / 10 ]</span>
+    <span class="hud-dots">· · · · · · · · · ·</span>
+    <span>OUTPUT :: MARKET_TOPOLOGY.JSON</span>
+  </div>
+  <div class="content">
+    <div class="left">
+      <div class="agent-idx">// AGENT 02 OF 09</div>
+      <h2>ATLAS</h2>
+      <div class="role">MARKET TOPOLOGY</div>
+      <p class="lead">Atlas sizes the opportunity bottom-up. It computes TAM / SAM / SOM, breaks out the top regions, profiles the ideal customer, and scores tailwinds versus headwinds. If the opportunity score falls below 50, Atlas silently triggers the auto-pivot engine in the background.</p>
+      <ul class="feat-list">
+        <li>Bottom-up TAM · SAM · SOM sizing</li>
+        <li>Top-region opportunity mapping</li>
+        <li>ICP profiling &amp; customer segmentation</li>
+        <li>3 tailwinds, 3 headwinds, weighted</li>
+        <li>Opportunity score 0–100, auto-pivot trigger</li>
+      </ul>
+    </div>
+    <div class="right">
+      <div class="img-pane"></div>
+      <div class="output-box">
+        <div class="label">// RETURNS</div>
+        <div class="val">tam · sam · som · topRegions[] · customerSegments[] · tailwinds[] · headwinds[] · opportunityScore</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 6 — FORGE ================= -->
+<section class="slide agent forge">
+  <div class="bg-img" style="background-image:url('https://picsum.photos/seed/forgecode3/1920/1080'); opacity:0.12;"></div>
+  <div class="bg-tint"></div>
+  <div class="corner c-tl"></div><div class="corner c-tr"></div>
+  <div class="corner c-bl"></div><div class="corner c-br"></div>
+  <div class="hud-top">
+    <span>&gt;&gt; AGENT // FORGE.EXE</span>
+    <span>TYPE :: SEQUENCED</span>
+  </div>
+  <div class="hud-bottom">
+    <span class="page-num">[ 06 / 10 ]</span>
+    <span class="hud-dots">· · · · · · · · · ·</span>
+    <span>OUTPUT :: BLUEPRINT.ZIP / REPO.URL</span>
+  </div>
+  <div class="content">
+    <div class="left">
+      <div class="agent-idx">// AGENT 03 OF 09</div>
+      <h2>FORGE</h2>
+      <div class="role">RUNTIME SCAFFOLD</div>
+      <p class="lead">Forge picks a stack, drafts the architecture, then commits a real GitHub repository — README, BLUEPRINT.md, package.json, .gitignore, .env.example, one TypeScript stub per module. Ready to <span class="mono" style="color:var(--charge)">npm install &amp;&amp; npm run dev</span>.</p>
+      <ul class="feat-list">
+        <li>5-layer stack: front · back · DB · AI · hosting</li>
+        <li>MVP feature list with complexity &amp; estimates</li>
+        <li>Architecture diagram, modules, API endpoints</li>
+        <li>12-week build roadmap + cut list</li>
+        <li>Real GitHub repo OR downloadable .zip scaffold</li>
+      </ul>
+    </div>
+    <div class="right">
+      <div class="img-pane"></div>
+      <div class="output-box">
+        <div class="label">// RETURNS</div>
+        <div class="val">techStack · features[] · architecture · modules[] · apiEndpoints[] · roadmap[] · buildabilityScore · repoUrl | zipUrl</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 7 — DECK ================= -->
+<section class="slide agent deck">
+  <div class="bg-img" style="background-image:url('https://picsum.photos/seed/deckslide11/1920/1080'); opacity:0.12;"></div>
+  <div class="bg-tint"></div>
+  <div class="corner c-tl"></div><div class="corner c-tr"></div>
+  <div class="corner c-bl"></div><div class="corner c-br"></div>
+  <div class="hud-top">
+    <span>&gt;&gt; AGENT // DECK.EXE</span>
+    <span>TYPE :: SEQUENCED</span>
+  </div>
+  <div class="hud-bottom">
+    <span class="page-num">[ 07 / 10 ]</span>
+    <span class="hud-dots">· · · · · · · · · ·</span>
+    <span>OUTPUT :: PITCH.PPTX</span>
+  </div>
+  <div class="content">
+    <div class="left">
+      <div class="agent-idx">// AGENT 04 OF 09</div>
+      <h2>DECK</h2>
+      <div class="role">NARRATIVE EXPORT</div>
+      <p class="lead">Deck writes a 10-slide Sequoia-format pitch — Problem, Solution, Why Now, Market, Product, Business Model, GTM, Competition, Traction, Ask. It re-themes itself per idea (palette + mood + fonts) and pulls real Pexels imagery slide-by-slide in parallel.</p>
+      <ul class="feat-list">
+        <li>10 slides in proven Sequoia format</li>
+        <li>Dynamic per-idea theme (not hard-coded)</li>
+        <li>Real Pexels imagery, parallel fetches</li>
+        <li>Delivers .pptx binary + in-app viewer</li>
+        <li>Regeneratable independently of the pipeline</li>
+      </ul>
+    </div>
+    <div class="right">
+      <div class="img-pane"></div>
+      <div class="output-box">
+        <div class="label">// RETURNS</div>
+        <div class="val">startupName · oneLiner · elevatorPitch · theme{palette,mood,fonts} · slides[] · pptxUrl</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 8 — CONNECT ================= -->
+<section class="slide agent connect">
+  <div class="bg-img" style="background-image:url('https://picsum.photos/seed/vcnet44/1920/1080'); opacity:0.12;"></div>
+  <div class="bg-tint"></div>
+  <div class="corner c-tl"></div><div class="corner c-tr"></div>
+  <div class="corner c-bl"></div><div class="corner c-br"></div>
+  <div class="hud-top">
+    <span>&gt;&gt; AGENT // CONNECT.EXE</span>
+    <span>TYPE :: SEQUENCED</span>
+  </div>
+  <div class="hud-bottom">
+    <span class="page-num">[ 08 / 10 ]</span>
+    <span class="hud-dots">· · · · · · · · · ·</span>
+    <span>OUTPUT :: VC_RANKED.JSON</span>
+  </div>
+  <div class="content">
+    <div class="left">
+      <div class="agent-idx">// AGENT 05 OF 09</div>
+      <h2>CONNECT</h2>
+      <div class="role">CAPITAL MATCH</div>
+      <p class="lead">Connect tags the idea, ranks ten investors from a curated seed list by thesis fit, and writes a personalized cold email for each — subject line plus a three-paragraph body. It then grades investor readiness across narrative, market, team, traction, and financials.</p>
+      <ul class="feat-list">
+        <li>Top 10 VCs ranked by thesis fit</li>
+        <li>Personalized cold email drafts per VC</li>
+        <li>Investor readiness breakdown (5 dimensions)</li>
+        <li>3 accelerator recommendations</li>
+        <li>Fundraising strategy: amount · valuation · timeline</li>
+      </ul>
+    </div>
+    <div class="right">
+      <div class="img-pane"></div>
+      <div class="output-box">
+        <div class="label">// RETURNS</div>
+        <div class="val">topVCs[] · investorReadinessScore · accelerators[] · fundraisingStrategy{amount,valuation,timeline,notes}</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 9 — BACKGROUND AGENTS ================= -->
+<section class="slide bg-agents">
+  <div class="bg-img"></div>
+  <div class="bg-tint"></div>
+  <div class="corner c-tl"></div><div class="corner c-tr"></div>
+  <div class="corner c-bl"></div><div class="corner c-br"></div>
+  <div class="hud-top">
+    <span>&gt;&gt; BACKGROUND // FOUR AUXILIARY AGENTS</span>
+    <span>MODE :: FIRE-AND-FORGET</span>
+  </div>
+  <div class="hud-bottom">
+    <span class="page-num">[ 09 / 10 ]</span>
+    <span class="hud-dots">· · · · · · · · · ·</span>
+    <span>THREADS :: ASYNC</span>
+  </div>
+  <div class="content">
+    <h2>FOUR MORE <span class="accent">AGENTS.</span></h2>
+    <p class="sub">Beyond the five-agent core pipeline, four background agents fire asynchronously — pivoting weak ideas, stress-testing the founder, mapping a 12-week roadmap, and shipping day-one launch assets.</p>
+    <div class="bg-grid">
+      <div class="bg-card">
+        <div class="name">PIVOT</div>
+        <div class="role">AUTO-PIVOT ENGINE</div>
+        <p>Fires silently when Atlas opportunity score falls below 50. Generates five ranked alternative directions — new target market, new core feature, lower-competition estimate — so the user never lands on a dead end.</p>
+        <div class="tag">// AGENT 06 · TRIGGER &lt; 50</div>
+      </div>
+      <div class="bg-card">
+        <div class="name">SIMULATOR</div>
+        <div class="role">INVESTOR STRESS TEST</div>
+        <p>Generates five brutal VC questions scored against a rubric, then rates the founder's answers 1–10 with feedback. Rolls up to a final investability score out of 100 — practice before the real meeting.</p>
+        <div class="tag">// AGENT 07 · TWO-MODE</div>
+      </div>
+      <div class="bg-card">
+        <div class="name">TIMELINE</div>
+        <div class="role">12-WEEK ROADMAP</div>
+        <p>Builds a week-by-week fundraising plan — narrative, outreach, product, meetings, close — personalized by founder DNA: hours per week, location, stage, prior startups. Cadence adjusts to the operator.</p>
+        <div class="tag">// AGENT 08 · DNA-AWARE</div>
+      </div>
+      <div class="bg-card">
+        <div class="name">LAUNCHKIT</div>
+        <div class="role">ONE-CLICK LAUNCH</div>
+        <p>Five domain suggestions across .com/.ai/.io, a logo concept with palette and fonts, a ready-to-ship Tailwind landing page, a waitlist embed snippet, and the opening tagline. Launch day becomes launch minute.</p>
+        <div class="tag">// AGENT 09 · SHIPPABLE</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 10 — MOATS / CLOSING ================= -->
+<section class="slide closing">
+  <div class="bg-img"></div>
+  <div class="bg-tint"></div>
+  <div class="corner c-tl"></div><div class="corner c-tr"></div>
+  <div class="corner c-bl"></div><div class="corner c-br"></div>
+  <div class="hud-top">
+    <span>&gt;&gt; MOATS // WHY WE WIN</span>
+    <span>ENCRYPTED :: 07 LAYERS</span>
+  </div>
+  <div class="hud-bottom">
+    <span class="page-num">[ 10 / 10 ]</span>
+    <span class="hud-dots">· · · · · · · · · ·</span>
+    <span>END :: TRANSMISSION</span>
+  </div>
+  <div class="content">
+    <h2>SEVEN <span class="accent">MOATS.</span></h2>
+    <p class="sub">Anyone can chain GPT calls. Our defensibility comes from real data integrations, real artifacts, and a founder-aware pipeline that gets smarter every week.</p>
+    <div class="moat-grid">
+      <div class="moat"><div class="num">// 01</div><div class="title">Solana Signals</div><p>Live DeFi Llama + Solana RPC data inside Scout — real on-chain demand, not vibes.</p></div>
+      <div class="moat"><div class="num">// 02</div><div class="title">Co-Founder Match</div><p>Network effect: adjacent founders surface complementary skills and prior wins.</p></div>
+      <div class="moat"><div class="num">// 03</div><div class="title">Auto-Pivot</div><p>Weak score silently spawns Pivot in the background. Five ranked escape routes.</p></div>
+      <div class="moat"><div class="num">// 04</div><div class="title">SendGrid Re-Rank</div><p>Real outreach, webhook-tracked opens and clicks. Investors re-rank live.</p></div>
+      <div class="moat"><div class="num">// 05</div><div class="title">Weekly Refresh</div><p>Cron re-runs Scout + Atlas. Deltas broadcast to the dashboard. Reports age gracefully.</p></div>
+      <div class="moat"><div class="num">// 06</div><div class="title">Founder DNA</div><p>Every agent receives the operator context block. Stack, cadence, and pitch adapt.</p></div>
+      <div class="moat"><div class="num">// 07</div><div class="title">Real GitHub Scaffold</div><p>Forge commits a runnable repo — README, modules, env, roadmap — not a Markdown stub.</p></div>
+      <div class="moat"><div class="num">// 08</div><div class="title">Dynamic Deck Theme</div><p>Deck re-themes per idea. Palette, fonts, real Pexels imagery fetched in parallel.</p></div>
+    </div>
+    <div class="cta">
+      <div class="ctx">&gt;&gt; FIVE SPECIALIST AGENTS INTERROGATE YOUR THESIS IN PARALLEL.<br>A PITCH DECK, MVP REPOSITORY, MARKET REPORT &amp; RANKED INVESTOR LIST — IN UNDER TEN MINUTES.</div>
+      <div class="btn">RUN REPORT &gt;</div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
