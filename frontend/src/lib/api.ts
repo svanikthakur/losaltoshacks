@@ -1,4 +1,4 @@
-const BASE = '/api'
+const BASE = (import.meta.env.VITE_API_URL || '') + '/api'
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const token = localStorage.getItem('ac_token')
@@ -98,8 +98,15 @@ export const api = {
 }
 
 export function openAgentSocket(reportId: string, onEvent: (e: any) => void) {
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws'
-  const ws = new WebSocket(`${proto}://${location.host}/ws/agent/${reportId}`)
+  const apiUrl = import.meta.env.VITE_API_URL || ''
+  let wsBase: string
+  if (apiUrl) {
+    wsBase = apiUrl.replace(/^http/, 'ws')
+  } else {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws'
+    wsBase = `${proto}://${location.host}`
+  }
+  const ws = new WebSocket(`${wsBase}/ws/agent/${reportId}`)
   ws.onmessage = (ev) => {
     try {
       onEvent(JSON.parse(ev.data))
