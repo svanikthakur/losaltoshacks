@@ -334,7 +334,7 @@ export default function Landing() {
       <footer className="shell py-10 flex flex-wrap items-center justify-between gap-6">
         <div className="flex items-center gap-3">
           <span className="font-mono text-[11px] tracking-[0.2em] uppercase" style={{ color: 'var(--color-charge)' }}>
-            AGENTCONNECT_AI
+            VENTURE_AI
           </span>
           <span className="label">V0.1.3 · © {new Date().getFullYear()}</span>
         </div>
@@ -466,26 +466,29 @@ function Terminal({ instant, bootOffset = 0 }: { instant: boolean; bootOffset?: 
   useEffect(() => {
     if (started.current) return
     started.current = true
-    const base = instant ? 0 : 1900 + bootOffset
+    const base = instant ? 0 : 800 + bootOffset
 
-    // Scout fills to 100, completes
-    setTimeout(() => {
-      setState((s) => ({ ...s, scout: 'running' }))
-      setProgress((p) => ({ ...p, scout: 100 }))
-      setTimeout(() => setState((s) => ({ ...s, scout: 'complete' })), 1500)
-    }, base + 200)
+    const run = (key: string, startMs: number, completeMs: number) => {
+      setTimeout(() => {
+        setState((s) => ({ ...s, [key]: 'running' }))
+        setProgress((p) => ({ ...p, [key]: 100 }))
+      }, base + startMs)
+      setTimeout(() => {
+        setState((s) => ({ ...s, [key]: 'complete' }))
+      }, base + completeMs)
+    }
 
-    // Atlas begins later, settles at 55 (running)
-    setTimeout(() => {
-      setState((s) => ({ ...s, atlas: 'running' }))
-      setProgress((p) => ({ ...p, atlas: 55 }))
-    }, base + 800)
+    run('scout', 100, 800)
+    run('atlas', 200, 1000)
+    run('forge', 1000, 2000)
+    run('deck', 2000, 3200)
+    run('connect', 3200, 4200)
 
     // Score count-up
     setTimeout(() => {
       if (instant) return
       const target = 8.2
-      const duration = 1400
+      const duration = 800
       const t0 = performance.now()
       const tick = (now: number) => {
         const t = Math.min((now - t0) / duration, 1)
@@ -495,7 +498,7 @@ function Terminal({ instant, bootOffset = 0 }: { instant: boolean; bootOffset?: 
         else setScore(target)
       }
       requestAnimationFrame(tick)
-    }, base + 400)
+    }, base + 300)
   }, [instant, bootOffset])
 
   // Dots animation on running row
@@ -621,7 +624,7 @@ function AgentRow({
           style={{
             width: `${pct}%`,
             background: state === 'complete' ? 'var(--color-steel)' : 'var(--color-charge)',
-            transition: 'width 1200ms var(--ease-out), background 300ms',
+            transition: 'width 600ms var(--ease-out), background 200ms',
           }}
         />
       </div>
