@@ -80,8 +80,6 @@ export default function FeatureHub({ reportId, competitors }: Props) {
         <MarketPulse reportId={reportId} />
         <CohortBenchmark reportId={reportId} />
         <VoicePitchCoach reportId={reportId} />
-        <WarmIntroMapper reportId={reportId} />
-        <VercelDeploy reportId={reportId} />
       </div>
     </div>
   )
