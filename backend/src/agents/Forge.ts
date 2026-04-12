@@ -18,6 +18,7 @@ import path from 'path'
 import { callAgentJSON } from '../services/ai.js'
 import { createRepo, putFile, slugify } from '../services/github.js'
 import { dnaContextBlock, type DNA } from '../services/dnaContext.js'
+import { deployLandingPage } from '../services/vercel.js'
 import type { ScoutOutput } from './Scout.js'
 import type { AtlasOutput } from './Atlas.js'
 
@@ -232,43 +233,63 @@ export async function runForge(
     }
   }
 
-  // Path B — real .zip scaffold
-  await mkdir(STORAGE_DIR, { recursive: true })
-  const zip = new JSZip()
-  zip.file('README.md', buildReadme(idea, blueprint, 'venture-ai', slug))
-  zip.file('BLUEPRINT.md', buildBlueprintDoc(blueprint))
-  zip.file('package.json', buildPackageJson(slug, blueprint))
-  zip.file('.gitignore', 'node_modules\ndist\n.env\n.DS_Store\n*.log\n')
-  zip.file('.env.example', '# Add your real env vars here\nPORT=3000\n')
-  const withFe = hasFrontend(blueprint)
-  const serverDir = withFe ? 'src/server' : 'src'
+  // Path B — generate a real working app + deploy to Vercel
+  let appUrl: string | null = null
+  let appError: string | undefined
 
-  zip.file(`${serverDir}/index.ts`, buildEntryPoint(blueprint))
-  zip.file('tsconfig.json', buildTsConfig())
-  for (const m of blueprint.architecture.modules) {
-    const safeName = m.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-    zip.file(`${serverDir}/${safeName}/index.ts`, buildModuleFile(m, blueprint))
+  try {
+    const appHtml = await callAgentJSON<{ html: string }>(
+      'forge',
+      `You are a senior full-stack developer. Generate a COMPLETE, beautiful, single-file HTML application.
+
+Rules:
+- Return ONLY JSON: { "html": "<full html document>" }
+- Use <script src="https://cdn.tailwindcss.com"></script> for styling
+- Use Alpine.js via CDN for interactivity: <script src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js" defer></script>
+- The app must be FULLY FUNCTIONAL with working UI interactions, not just a landing page
+- Include: navigation, hero section, feature cards, interactive demo section, pricing/waitlist, footer
+- Use modern design: gradients, rounded corners, shadows, hover effects, transitions
+- Make it responsive (mobile + desktop)
+- Include realistic sample data and working form interactions
+- The HTML must be under 15000 characters
+- Make it look like a real product website that a startup would ship on launch day
+- NO placeholder text — every word should be real copy for this specific product`,
+      `Build a complete product website for:
+
+Idea: "${idea}"
+Product pitch: "${blueprint.shortPitch}"
+Tech stack: ${blueprint.techStack.map((t) => t.technology).join(', ')}
+Key features:
+${blueprint.mvpFeatures.map((f) => `- ${f.name}: ${f.userStory}`).join('\n')}
+
+Generate the full working HTML app.`,
+      { temperature: 0.5, maxTokens: 8000, timeoutMs: 60_000 },
+    )
+
+    if (appHtml?.html && process.env.VERCEL_TOKEN) {
+      const deployed = await deployLandingPage(slug, appHtml.html)
+      appUrl = deployed.url
+      console.log(`[forge] app deployed to ${appUrl}`)
+    } else if (appHtml?.html) {
+      await mkdir(STORAGE_DIR, { recursive: true })
+      const htmlPath = path.join(STORAGE_DIR, `${slug}.html`)
+      await writeFile(htmlPath, appHtml.html)
+      appUrl = `${PUBLIC_BASE}/${slug}.html`
+    }
+  } catch (err) {
+    appError = (err as Error).message
+    console.warn(`[forge] app generation failed: ${appError}`)
   }
-
-  if (withFe) {
-    zip.file('index.html', buildIndexHtml(blueprint))
-    zip.file('src/main.tsx', buildMainTsx())
-    zip.file('src/App.tsx', buildAppTsx(blueprint))
-    zip.file('vite.config.ts', buildViteConfig())
-  }
-
-  const buffer = await zip.generateAsync({ type: 'nodebuffer' })
-  const zipPath = path.join(STORAGE_DIR, `${slug}.zip`)
-  await writeFile(zipPath, buffer)
 
   return {
     ...blueprint,
     repoUrl: null,
-    zipUrl: `${PUBLIC_BASE}/${slug}.zip`,
-    error: process.env.GITHUB_TOKEN
-      ? 'GitHub token cannot create repositories (needs Administration: Read+Write or `repo` scope). Scaffold delivered as a downloadable .zip instead.'
-      : 'GITHUB_TOKEN not set. Scaffold delivered as a downloadable .zip instead.',
-    fixUrl: 'https://github.com/settings/personal-access-tokens',
+    zipUrl: appUrl,
+    error: appError
+      ? `App generation failed: ${appError}`
+      : !appUrl
+      ? 'Could not generate app (VERCEL_TOKEN or OPENAI_API_KEY may be missing)'
+      : undefined,
   }
 }
 

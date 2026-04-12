@@ -1366,46 +1366,27 @@ function ForgeCard({ forge }: { forge: ForgeOut }) {
             })}
           </div>
         )}
-        <div className="mt-auto">
-          {forge.repoUrl ? (
+        <div className="mt-auto space-y-2">
+          {forge.repoUrl && (
             <a href={forge.repoUrl} target="_blank" rel="noreferrer" className="btn w-full justify-center">
               Open GitHub repo ↗
             </a>
-          ) : forge.zipUrl ? (
-            <>
-              <a href={forge.zipUrl} download className="btn w-full justify-center">
-                Download scaffold .zip ↓
-              </a>
-              <div
-                className="mt-4 p-4 rounded text-xs text-ink-dim leading-relaxed space-y-2"
-                style={{ background: 'rgba(0,255,65,0.04)', border: '1px solid rgba(0,255,65,0.12)' }}
-              >
-                <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-accent mb-2">
-                  › how to use this scaffold
-                </div>
-                <p><strong>1.</strong> Download and unzip the file (double-click the .zip)</p>
-                <p><strong>2.</strong> Create a new <strong>empty</strong> GitHub repo at <a href="https://github.com/new" target="_blank" rel="noreferrer" className="text-accent hover:underline">github.com/new</a> — name it anything, but <strong>don't</strong> add a README or .gitignore (those are already in the scaffold)</p>
-                <p><strong>3.</strong> Open Terminal (search "Terminal" in Spotlight) and paste these commands one at a time. Replace YOUR_FOLDER_NAME, YOUR_USERNAME, and YOUR_REPO:</p>
-                <pre className="font-mono text-[10px] text-ink p-2 rounded mt-1 overflow-x-auto" style={{ background: 'rgba(0,0,0,0.3)' }}>
-{`cd ~/Downloads/YOUR_FOLDER_NAME
-git init
-git add .
-git commit -m "forge: initial scaffold"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
-git push -u origin main`}
-                </pre>
-                <p><strong>4.</strong> Install dependencies and start the dev server:</p>
-                <pre className="font-mono text-[10px] text-ink p-2 rounded mt-1 overflow-x-auto" style={{ background: 'rgba(0,0,0,0.3)' }}>
-{`npm install
-npm run dev`}
-                </pre>
-                <p className="text-muted italic">The BLUEPRINT.md file inside has the full architecture + roadmap.</p>
-              </div>
-            </>
-          ) : (
-            <div className="text-xs text-muted font-mono">› scaffold not generated</div>
           )}
+          {forge.zipUrl && forge.zipUrl.startsWith('http') && (
+            <a
+              href={forge.zipUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="block w-full text-center font-mono text-[10px] uppercase tracking-[0.15em] py-2.5 rounded transition"
+              style={{ background: '#F59E0B', color: '#111318', border: '1px solid #F59E0B' }}
+            >
+              View live app ↗
+            </a>
+          )}
+          {!forge.repoUrl && !forge.zipUrl && (
+            <div className="text-xs text-muted font-mono">› app not generated yet</div>
+          )}
+          {forge.error && <div className="text-[10px] text-ink-dim mt-2">{forge.error}</div>}
         </div>
       </div>
     </Glow>
