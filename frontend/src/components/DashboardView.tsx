@@ -1448,74 +1448,128 @@ function ConnectSummaryCard({ connect }: { connect: ConnectOut }) {
 /* FORGE deep blueprint                                              */
 /* ================================================================ */
 function ForgeBlueprint({ forge }: { forge: ForgeOut }) {
+  const ACCENT = '#F59E0B'
+  const ACCENT_DIM = 'rgba(245,158,11,0.15)'
+  const ACCENT_GHOST = 'rgba(245,158,11,0.06)'
+  const complexityColor = (c: string) =>
+    c === 'high' ? '#EF4444' : c === 'medium' ? '#F59E0B' : '#10B981'
+
   return (
-    <Glow>
-      <div className="p-8 space-y-8">
-        <div>
-          <Eyebrow>// 03 FORGE · TECHNICAL BLUEPRINT</Eyebrow>
-          <h2 className="font-display text-3xl md:text-4xl font-bold uppercase tracking-[-0.02em]">
-            Build plan
-          </h2>
-          {forge.shortPitch && <p className="mt-3 text-base text-ink-dim leading-relaxed">{forge.shortPitch}</p>}
+    <div
+      className="rounded-2xl p-8 space-y-8"
+      style={{ background: '#111318', border: `1px solid ${ACCENT_DIM}` }}
+    >
+      <div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.2em] mb-2" style={{ color: ACCENT }}>
+          Technical blueprint
         </div>
-
-        {Array.isArray(forge.techStack) && forge.techStack.length > 0 && (
-          <div>
-            <SectionLabel>› tech stack</SectionLabel>
-            <div className="grid md:grid-cols-2 gap-3">
-              {forge.techStack.map((t, i) => {
-                const technology = typeof t === 'string' ? t : t?.technology
-                const layer = typeof t === 'string' ? '' : t?.layer
-                const justification = typeof t === 'string' ? '' : t?.justification
-                return (
-                  <div key={i} className="border p-4" style={{ borderColor: 'rgba(0,255,65,0.15)' }}>
-                    <div className="flex items-baseline justify-between mb-1">
-                      <div className="font-display text-lg font-bold">{technology}</div>
-                      {layer && <div className="font-mono text-[10px] uppercase text-muted">{layer}</div>}
-                    </div>
-                    {justification && <div className="text-xs text-ink-dim">{justification}</div>}
-                  </div>
-                )
-              })}
+        <h2 className="font-display text-3xl md:text-4xl font-bold tracking-[-0.01em] text-white">
+          How to build this
+        </h2>
+        {forge.shortPitch && <p className="mt-3 text-base text-ink-dim leading-relaxed">{forge.shortPitch}</p>}
+        {forge.buildabilityScore != null && (
+          <div className="mt-4 flex items-center gap-3">
+            <div className="h-2 flex-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${forge.buildabilityScore}%`, background: ACCENT }}
+              />
             </div>
+            <span className="font-mono text-sm font-bold" style={{ color: ACCENT }}>
+              {forge.buildabilityScore}/100
+            </span>
+            <span className="font-mono text-[10px] text-muted uppercase">buildability</span>
           </div>
         )}
+      </div>
 
-        {Array.isArray(forge.mvpFeatures) && forge.mvpFeatures.length > 0 && (
-          <div>
-            <SectionLabel>› mvp features</SectionLabel>
-            <div className="space-y-3">
-              {forge.mvpFeatures.map((f, i) => (
-                <div key={i} className="border p-4" style={{ borderColor: 'rgba(0,255,65,0.15)' }}>
-                  <div className="flex items-baseline justify-between mb-2">
-                    <div className="font-display text-base font-bold">{f.name}</div>
-                    <div className="font-mono text-[10px] text-muted">
-                      {f.complexity} · ~{f.estimateDays}d
+      {Array.isArray(forge.techStack) && forge.techStack.length > 0 && (
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.15em] mb-3" style={{ color: ACCENT }}>
+            Tech stack
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            {forge.techStack.map((t, i) => {
+              const technology = typeof t === 'string' ? t : t?.technology
+              const layer = typeof t === 'string' ? '' : t?.layer
+              const justification = typeof t === 'string' ? '' : t?.justification
+              return (
+                <div
+                  key={i}
+                  className="rounded-lg p-3 text-center"
+                  style={{ background: ACCENT_GHOST, border: `1px solid ${ACCENT_DIM}` }}
+                  title={justification || ''}
+                >
+                  <div className="font-display text-sm font-bold text-white">{technology}</div>
+                  {layer && (
+                    <div className="font-mono text-[9px] uppercase mt-1" style={{ color: ACCENT }}>
+                      {layer}
                     </div>
-                  </div>
-                  <div className="text-xs text-ink-dim italic">{f.userStory}</div>
+                  )}
                 </div>
-              ))}
-            </div>
+              )
+            })}
           </div>
-        )}
+        </div>
+      )}
+
+      {Array.isArray(forge.mvpFeatures) && forge.mvpFeatures.length > 0 && (
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.15em] mb-3" style={{ color: ACCENT }}>
+            MVP features
+          </div>
+          <div className="space-y-2">
+            {forge.mvpFeatures.map((f, i) => (
+              <div
+                key={i}
+                className="rounded-lg p-4 flex items-start gap-4"
+                style={{ background: ACCENT_GHOST, border: `1px solid ${ACCENT_DIM}` }}
+              >
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center font-mono text-xs font-bold flex-shrink-0"
+                  style={{ background: ACCENT_DIM, color: ACCENT }}
+                >
+                  {String(i + 1).padStart(2, '0')}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between gap-2 mb-1">
+                    <div className="font-display text-base font-bold text-white">{f.name}</div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span
+                        className="font-mono text-[9px] uppercase px-1.5 py-0.5 rounded-full"
+                        style={{ background: `${complexityColor(f.complexity)}18`, color: complexityColor(f.complexity) }}
+                      >
+                        {f.complexity}
+                      </span>
+                      <span className="font-mono text-[10px] text-muted">~{f.estimateDays}d</span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-ink-dim">{f.userStory}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
         {forge.architecture &&
           ((Array.isArray(forge.architecture.modules) && forge.architecture.modules.length > 0) ||
             (Array.isArray(forge.architecture.apiEndpoints) && forge.architecture.apiEndpoints.length > 0)) && (
           <div>
-            <SectionLabel>› architecture</SectionLabel>
+            <div className="font-mono text-[10px] uppercase tracking-[0.15em] mb-3" style={{ color: ACCENT }}>
+              Architecture
+            </div>
             {forge.architecture.dataFlow && (
               <p className="text-sm text-ink-dim mb-4 italic">{forge.architecture.dataFlow}</p>
             )}
             <div className="grid md:grid-cols-2 gap-4">
               {Array.isArray(forge.architecture.modules) && forge.architecture.modules.length > 0 && (
-                <div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted mb-2">modules</div>
-                  <ul className="text-xs space-y-1.5">
+                <div className="rounded-lg p-4" style={{ background: ACCENT_GHOST, border: `1px solid ${ACCENT_DIM}` }}>
+                  <div className="font-mono text-[9px] uppercase tracking-[0.15em] mb-3" style={{ color: ACCENT }}>modules</div>
+                  <ul className="text-xs space-y-2">
                     {forge.architecture.modules.map((m, i) => (
-                      <li key={i}>
-                        <span className="text-accent font-mono">{m.name}</span>{' '}
+                      <li key={i} className="flex gap-2">
+                        <span className="font-mono font-bold" style={{ color: ACCENT }}>{m.name}</span>
                         <span className="text-ink-dim">— {m.responsibility}</span>
                       </li>
                     ))}
@@ -1523,13 +1577,14 @@ function ForgeBlueprint({ forge }: { forge: ForgeOut }) {
                 </div>
               )}
               {Array.isArray(forge.architecture.apiEndpoints) && forge.architecture.apiEndpoints.length > 0 && (
-                <div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted mb-2">endpoints</div>
-                  <ul className="text-xs space-y-1.5 font-mono">
+                <div className="rounded-lg p-4" style={{ background: ACCENT_GHOST, border: `1px solid ${ACCENT_DIM}` }}>
+                  <div className="font-mono text-[9px] uppercase tracking-[0.15em] mb-3" style={{ color: ACCENT }}>endpoints</div>
+                  <ul className="text-xs space-y-2 font-mono">
                     {forge.architecture.apiEndpoints.map((e, i) => (
                       <li key={i}>
-                        <span className="text-accent">{e.method}</span> <span className="text-ink">{e.path}</span>
-                        <div className="text-muted pl-1">{e.description}</div>
+                        <span className="font-bold" style={{ color: ACCENT }}>{e.method}</span>
+                        {' '}<span className="text-white">{e.path}</span>
+                        <div className="text-muted ml-2">{e.description}</div>
                       </li>
                     ))}
                   </ul>
@@ -1541,18 +1596,24 @@ function ForgeBlueprint({ forge }: { forge: ForgeOut }) {
 
         {Array.isArray(forge.buildRoadmap) && forge.buildRoadmap.length > 0 && (
           <div>
-            <SectionLabel>› 12-week roadmap</SectionLabel>
-            <div className="space-y-3">
+            <div className="font-mono text-[10px] uppercase tracking-[0.15em] mb-3" style={{ color: ACCENT }}>
+              12-week roadmap
+            </div>
+            <div className="grid md:grid-cols-2 gap-3">
               {forge.buildRoadmap.map((p, i) => (
-                <div key={i} className="border p-4" style={{ borderColor: 'rgba(0,255,65,0.15)' }}>
+                <div
+                  key={i}
+                  className="rounded-lg p-4"
+                  style={{ background: ACCENT_GHOST, border: `1px solid ${ACCENT_DIM}` }}
+                >
                   <div className="flex items-baseline justify-between mb-2">
-                    <div className="font-display text-base font-bold">{p.weeks}</div>
-                    <div className="font-mono text-[10px] text-muted">{p.goal}</div>
+                    <div className="font-display text-base font-bold text-white">{p.weeks}</div>
+                    <div className="font-mono text-[10px]" style={{ color: ACCENT }}>{p.goal}</div>
                   </div>
                   <ul className="text-xs text-ink-dim space-y-1">
                     {(p.deliverables || []).map((d, j) => (
-                      <li key={j}>
-                        <span className="text-accent">›</span> {d}
+                      <li key={j} className="flex gap-1.5">
+                        <span style={{ color: ACCENT }}>›</span> {d}
                       </li>
                     ))}
                   </ul>
@@ -1564,14 +1625,20 @@ function ForgeBlueprint({ forge }: { forge: ForgeOut }) {
 
         {Array.isArray(forge.cutList) && forge.cutList.length > 0 && (
           <div>
-            <SectionLabel>› explicitly NOT building</SectionLabel>
-            <ul className="text-xs text-ink-dim space-y-1">
+            <div className="font-mono text-[10px] uppercase tracking-[0.15em] mb-3 text-rose-400">
+              Not building in v1
+            </div>
+            <div className="flex flex-wrap gap-2">
               {forge.cutList.map((c, i) => (
-                <li key={i}>
-                  <span className="text-rose-400">✕</span> {c}
-                </li>
+                <span
+                  key={i}
+                  className="text-xs px-2.5 py-1 rounded-full"
+                  style={{ background: 'rgba(239,68,68,0.08)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.2)' }}
+                >
+                  {c}
+                </span>
               ))}
-            </ul>
+            </div>
           </div>
         )}
 
@@ -1680,8 +1747,7 @@ npm run dev`}
             <div className="text-sm text-muted">Scaffold not generated yet.</div>
           )}
         </div>
-      </div>
-    </Glow>
+    </div>
   )
 }
 
