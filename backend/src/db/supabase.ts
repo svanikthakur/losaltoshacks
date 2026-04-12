@@ -374,6 +374,12 @@ export const supabaseStore: DB = {
     }))
   },
 
+  async listAllReports() {
+    const { data: rows, error } = await client.from('reports').select('*')
+    if (error) throw new Error(`listAllReports: ${error.message}`)
+    return (rows || []).map((r) => rowToReport(r as ReportRow))
+  },
+
   /* ───── community benchmarks ───── */
   async communityBenchmarks() {
     const { data: rows, error } = await client

@@ -100,7 +100,9 @@ async function executePipeline(reportId: string): Promise<void> {
     const [scoutResult, atlasResult] = await Promise.all([
       runAgentWithTimeout<ScoutOutput>({
         name: 'scout',
-        fn: () => runScout(report.ideaText, dna),
+        // Scout fans out to Serper + Trends + Solana + PH + YC + LLM — gets 30s
+        timeoutMs: 30_000,
+        fn: () => runScout(report.ideaText, dna, report.founderId),
         onLate: async (data) => {
           await db.updateReport(reportId, { scout_output: data })
           status('scout', 'complete', data)
@@ -108,6 +110,7 @@ async function executePipeline(reportId: string): Promise<void> {
       }),
       runAgentWithTimeout<AtlasOutput>({
         name: 'atlas',
+        timeoutMs: 30_000,
         fn: () => runAtlas(report.ideaText, dna),
         onLate: async (data) => {
           await db.updateReport(reportId, {
@@ -175,6 +178,8 @@ async function executePipeline(reportId: string): Promise<void> {
     const tForge = Date.now()
     const forgeResult = await runAgentWithTimeout<ForgeOutput>({
       name: 'forge',
+      // Blueprint LLM call + GitHub API commits OR JSZip → needs ~45s
+      timeoutMs: 60_000,
       fn: () => runForge(report.ideaText, scoutOut, atlasOut, dna),
       onLate: async (data) => {
         await db.updateReport(reportId, {
@@ -204,6 +209,8 @@ async function executePipeline(reportId: string): Promise<void> {
     const tDeck = Date.now()
     const deckResult = await runAgentWithTimeout<DeckOutput>({
       name: 'deck',
+      // Deck = LLM copy + 10 Pexels fetches + buffer download + pptx render
+      timeoutMs: 90_000,
       fn: () => runDeck(reportId, report.ideaText, scoutOut, atlasOut, forgeOut, dna),
       onLate: async (data) => {
         await db.updateReport(reportId, {
@@ -235,6 +242,9 @@ async function executePipeline(reportId: string): Promise<void> {
     const tConnect = Date.now()
     const connectResult = await runAgentWithTimeout<ConnectOutput>({
       name: 'connect',
+      // Connect = tag call + full-shot call that writes 10 personalized emails
+      // + readiness + accelerators + strategy. Needs the biggest budget.
+      timeoutMs: 90_000,
       fn: () => runConnect(reportId, report.ideaText, atlasOut, scoutOut, dna),
       onLate: async (data) => {
         await db.updateReport(reportId, {
@@ -329,7 +339,7 @@ async function executeSingleAgent(reportId: string, agent: AgentName): Promise<v
   try {
     status('running')
     if (agent === 'scout') {
-      const out = await runScout(report.ideaText, dna)
+      const out = await runScout(report.ideaText, dna, report.founderId)
       await db.updateReport(reportId, { scout_output: out })
       status('complete', out)
     } else if (agent === 'atlas') {

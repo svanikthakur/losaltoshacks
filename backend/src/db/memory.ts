@@ -127,6 +127,10 @@ export const memoryStore = {
       .sort((a, b) => b.createdAt - a.createdAt)
   },
 
+  async listAllReports(): Promise<Report[]> {
+    return [...reports.values()]
+  },
+
   /* ───── community benchmarks ───── */
   async communityBenchmarks(): Promise<{ avgScore: number; topDecile: number; sampleSize: number }> {
     const scores = [...reports.values()]

@@ -31,6 +31,8 @@ import simulatorRouter from './routes/simulator.js'
 import timelineRouter from './routes/timeline.js'
 import launchkitRouter from './routes/launchkit.js'
 import sendgridRouter from './routes/sendgrid.js'
+import featuresRouter from './routes/features.js'
+import pulseRouter from './routes/pulse.js'
 
 const app = express()
 const server = createServer(app)
@@ -81,6 +83,8 @@ app.use('/api/network', requireAuth, networkRouter)
 app.use('/api/simulator', requireAuth, simulatorRouter)
 app.use('/api/timeline', requireAuth, timelineRouter)
 app.use('/api/launchkit', requireAuth, launchkitRouter)
+app.use('/api/features', requireAuth, featuresRouter)
+app.use('/api/pulse', requireAuth, pulseRouter)
 
 app.use(errorHandler)
 

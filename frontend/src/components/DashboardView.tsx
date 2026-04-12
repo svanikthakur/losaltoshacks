@@ -60,6 +60,45 @@ interface SolanaSnapshot {
   network: SolanaNetwork | null
   summary: string
 }
+
+interface PhLaunch {
+  id: string
+  name: string
+  tagline: string
+  url: string
+  votesCount: number
+  createdAt: string
+  thumbnailUrl?: string
+  topics: string[]
+}
+interface YcMatch {
+  name: string
+  slug: string
+  one_liner: string
+  website: string
+  batch: string
+  status: string
+  score: number
+}
+interface InternalIdeaMatch {
+  reportId: string
+  founderId: string
+  ideaText: string
+  createdAt: number
+  score: number
+}
+interface CollisionReport {
+  score: number
+  summary: string
+  breakdown: {
+    productHunt: number
+    ycCompanies: number
+    internalIdeas: number
+  }
+  productHuntLaunches: PhLaunch[]
+  ycCompanies: YcMatch[]
+  internalIdeas: InternalIdeaMatch[]
+}
 interface ScoutOut {
   competitors?: ScoutCompetitor[]
   collisionScore?: number
@@ -70,6 +109,7 @@ interface ScoutOut {
   sources?: ScoutSource[]
   summary?: string
   onchain?: SolanaSnapshot
+  collision?: CollisionReport
 }
 
 interface RegionEntry { name: string; why: string }
@@ -240,29 +280,37 @@ export default function DashboardView({ report }: { report: ReportLike }) {
       <div className="shell space-y-10">
         <Header idea={report.idea} score={validationScore} opportunity={atlas.opportunityScore} />
 
+        {/* ── SECTION 1: Market Intelligence (Scout) ── */}
         {scout.marketArticle && <MarketArticle scout={scout} />}
         {!scout.marketArticle && scout.summary && <ScoutSummary scout={scout} />}
 
+        {/* ── SECTION 2: Market Sizing + Growth (Atlas) ── */}
         {atlas.tam && <StrategicPlan atlas={atlas} />}
+        {atlas.tam && <AtlasGrowthChart atlas={atlas} />}
 
-        {/* Auto-pivot — appears when Atlas opportunity < 50 */}
+        {/* ── Auto-pivot — appears when Atlas opportunity < 50 ── */}
         {report.pivot_output &&
           Array.isArray((report.pivot_output as PivotOut).pivots) &&
           ((report.pivot_output as PivotOut).pivots?.length ?? 0) > 0 && (
             <PivotPanel pivots={((report.pivot_output as PivotOut).pivots ?? []) as PivotIdea[]} />
           )}
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          <DeckCard deck={deck} />
-          <ForgeCard forge={forge} />
-          <ConnectSummaryCard connect={connect} />
+        {/* ── SECTION 3: Deck + Forge side-by-side ── */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            <DeckCard deck={deck} />
+            <DeckSlides deck={deck} reportId={report.id} />
+          </div>
+          <div className="space-y-6">
+            <ForgeCard forge={forge} />
+            {Array.isArray(forge.mvpFeatures) && forge.mvpFeatures.length > 0 && (
+              <ForgeBlueprint forge={forge} />
+            )}
+          </div>
         </div>
 
-        {Array.isArray(forge.mvpFeatures) && forge.mvpFeatures.length > 0 && (
-          <ForgeBlueprint forge={forge} />
-        )}
-        <DeckSlides deck={deck} reportId={report.id} />
-
+        {/* ── SECTION 4: Investors ── */}
+        <ConnectSummaryCard connect={connect} />
         {Array.isArray(connect.topVCs) && connect.topVCs.length > 0 && (
           <InvestorList investors={connect.topVCs} reportId={report.id} />
         )}
@@ -339,6 +387,7 @@ function MarketArticle({ scout }: { scout: ScoutOut }) {
         {Array.isArray(scout.marketSignals) && scout.marketSignals.length > 0 && (
           <MarketSignals signals={scout.marketSignals} />
         )}
+        {scout.collision && <CollisionPanel collision={scout.collision} />}
         {scout.onchain?.relevant && <OnchainPanel onchain={scout.onchain} />}
         {Array.isArray(scout.sources) && scout.sources.length > 0 && <Sources sources={scout.sources} />}
       </div>
@@ -362,6 +411,7 @@ function ScoutSummary({ scout }: { scout: ScoutOut }) {
         {Array.isArray(scout.marketSignals) && scout.marketSignals.length > 0 && (
           <MarketSignals signals={scout.marketSignals} />
         )}
+        {scout.collision && <CollisionPanel collision={scout.collision} />}
         {scout.onchain?.relevant && <OnchainPanel onchain={scout.onchain} />}
         {Array.isArray(scout.sources) && scout.sources.length > 0 && <Sources sources={scout.sources} />}
       </div>
@@ -453,6 +503,119 @@ function MarketSignals({ signals }: { signals: ScoutMarketSignal[] }) {
           </li>
         ))}
       </ul>
+    </div>
+  )
+}
+
+function CollisionPanel({ collision }: { collision: CollisionReport }) {
+  const color =
+    collision.score >= 70 ? '#FB7185' : collision.score >= 40 ? '#FBBF24' : '#00FF41'
+  return (
+    <div className="mt-8">
+      <SectionLabel>› cross-platform collision (live)</SectionLabel>
+      <div
+        className="border p-5 mb-4"
+        style={{ borderColor: 'rgba(0,255,65,0.18)', background: 'rgba(0,255,65,0.03)' }}
+      >
+        <div className="flex items-baseline justify-between mb-3">
+          <div className="text-sm text-ink">{collision.summary}</div>
+          <div
+            className="font-display text-3xl font-bold leading-none flex-shrink-0 ml-4"
+            style={{ color }}
+          >
+            {collision.score}
+            <span className="font-mono text-xs text-muted ml-1">/ 100</span>
+          </div>
+        </div>
+        <div
+          className="grid grid-cols-3 gap-px border"
+          style={{ borderColor: 'var(--color-border-1)', background: 'var(--color-border-1)' }}
+        >
+          <Stat label="Product Hunt (90d)" value={String(collision.breakdown.productHunt)} />
+          <Stat label="YC companies" value={String(collision.breakdown.ycCompanies)} />
+          <Stat label="Internal ideas" value={String(collision.breakdown.internalIdeas)} />
+        </div>
+      </div>
+
+      {collision.productHuntLaunches.length > 0 && (
+        <div className="mb-4">
+          <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted mb-2">
+            › product hunt launches (last 90d)
+          </div>
+          <div className="space-y-2">
+            {collision.productHuntLaunches.map((p) => (
+              <a
+                key={p.id}
+                href={p.url}
+                target="_blank"
+                rel="noreferrer"
+                className="block border p-3 hover:bg-white/[0.02] transition"
+                style={{ borderColor: 'rgba(0,255,65,0.15)' }}
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <div className="font-display text-base font-bold">{p.name}</div>
+                  <div className="font-mono text-[10px] text-accent flex-shrink-0">
+                    ▲ {p.votesCount}
+                  </div>
+                </div>
+                <div className="text-xs text-ink-dim mt-1">{p.tagline}</div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {collision.ycCompanies.length > 0 && (
+        <div className="mb-4">
+          <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted mb-2">
+            › y combinator companies
+          </div>
+          <div className="space-y-2">
+            {collision.ycCompanies.map((c) => (
+              <a
+                key={c.slug}
+                href={c.website || `https://www.ycombinator.com/companies/${c.slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="block border p-3 hover:bg-white/[0.02] transition"
+                style={{ borderColor: 'rgba(0,255,65,0.15)' }}
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <div className="font-display text-base font-bold">{c.name}</div>
+                  <div className="font-mono text-[10px] text-muted flex-shrink-0">
+                    {c.batch} · {c.status}
+                  </div>
+                </div>
+                <div className="text-xs text-ink-dim mt-1">{c.one_liner}</div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {collision.internalIdeas.length > 0 && (
+        <div>
+          <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted mb-2">
+            › other AgentConnect founders building here
+          </div>
+          <div className="space-y-2">
+            {collision.internalIdeas.map((m) => (
+              <div
+                key={m.reportId}
+                className="border p-3"
+                style={{ borderColor: 'rgba(0,255,65,0.15)' }}
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <div className="text-sm text-ink line-clamp-2">{m.ideaText}</div>
+                  <div className="font-mono text-[10px] text-accent flex-shrink-0">
+                    {m.score}% similar
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -680,6 +843,132 @@ function StrategicPlan({ atlas }: { atlas: AtlasOut }) {
 }
 
 /* ================================================================ */
+/* ATLAS — growth chart (TAM/SAM/SOM visual)                         */
+/* ================================================================ */
+function AtlasGrowthChart({ atlas }: { atlas: AtlasOut }) {
+  const parseNum = (s?: string) => {
+    if (!s) return 0
+    const m = s.replace(/[^0-9.BMKbmk]/g, '')
+    const num = parseFloat(m) || 0
+    if (/B/i.test(s)) return num * 1000
+    if (/M/i.test(s)) return num
+    if (/K/i.test(s)) return num / 1000
+    return num / 1_000_000
+  }
+  const tam = parseNum(atlas.tam)
+  const sam = parseNum(atlas.sam)
+  const som = parseNum(atlas.som)
+  if (tam === 0 && sam === 0 && som === 0) return null
+
+  const max = Math.max(tam, sam, som, 1)
+  const bars = [
+    { label: 'TAM', value: tam, raw: atlas.tam || '—', color: 'var(--color-charge)' },
+    { label: 'SAM', value: sam, raw: atlas.sam || '—', color: '#34D399' },
+    { label: 'SOM', value: som, raw: atlas.som || '—', color: '#22D3EE' },
+  ]
+
+  const segments = Array.isArray(atlas.customerSegments) ? atlas.customerSegments : []
+
+  return (
+    <Glow>
+      <div className="p-8">
+        <Eyebrow>// ATLAS · MARKET OPPORTUNITY</Eyebrow>
+        <div className="grid md:grid-cols-2 gap-8">
+          <div>
+            <h3 className="font-display text-xl font-bold mb-6">Market sizing</h3>
+            <div className="space-y-4">
+              {bars.map((b) => (
+                <div key={b.label}>
+                  <div className="flex items-baseline justify-between mb-1">
+                    <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted">
+                      {b.label}
+                    </span>
+                    <span className="font-display text-lg font-bold" style={{ color: b.color }}>
+                      {b.raw}
+                    </span>
+                  </div>
+                  <div className="h-3 rounded-full bg-white/5 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.max(4, (b.value / max) * 100)}%`,
+                        background: b.color,
+                        opacity: 0.8,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            {atlas.opportunityScore != null && (
+              <div className="mt-6 flex items-baseline gap-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted">
+                  opportunity
+                </span>
+                <span
+                  className="font-display text-3xl font-bold"
+                  style={{
+                    color:
+                      atlas.opportunityScore >= 70
+                        ? '#00FF41'
+                        : atlas.opportunityScore >= 40
+                        ? '#FBBF24'
+                        : '#FB7185',
+                  }}
+                >
+                  {atlas.opportunityScore}
+                </span>
+                <span className="font-mono text-xs text-muted">/ 100</span>
+              </div>
+            )}
+          </div>
+
+          {segments.length > 0 && (
+            <div>
+              <h3 className="font-display text-xl font-bold mb-6">Customer segments</h3>
+              <div className="space-y-3">
+                {segments.map((seg, i) => (
+                  <div
+                    key={i}
+                    className="p-3 rounded"
+                    style={{
+                      background:
+                        seg.tier === 'early adopters'
+                          ? 'rgba(0,255,65,0.06)'
+                          : seg.tier === 'early majority'
+                          ? 'rgba(34,211,238,0.06)'
+                          : 'rgba(168,85,247,0.06)',
+                      border: `1px solid ${
+                        seg.tier === 'early adopters'
+                          ? 'rgba(0,255,65,0.2)'
+                          : seg.tier === 'early majority'
+                          ? 'rgba(34,211,238,0.2)'
+                          : 'rgba(168,85,247,0.2)'
+                      }`,
+                    }}
+                  >
+                    <div className="flex items-baseline justify-between mb-1">
+                      <span className="font-mono text-[9px] uppercase tracking-[0.15em] text-accent">
+                        {seg.tier}
+                      </span>
+                      <span className="font-mono text-[10px] text-muted">{seg.size}</span>
+                    </div>
+                    <div className="text-sm text-ink-dim">{seg.description}</div>
+                    <div className="text-[10px] text-muted mt-1">
+                      channel: <span className="text-accent">{seg.acquisitionChannel}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </Glow>
+  )
+}
+
+/* ================================================================ */
 /* PIVOT PANEL (auto-generated when opportunity < 50)                */
 /* ================================================================ */
 function PivotPanel({ pivots }: { pivots: PivotIdea[] }) {
@@ -801,13 +1090,34 @@ function ForgeCard({ forge }: { forge: ForgeOut }) {
               Open GitHub repo ↗
             </a>
           ) : forge.zipUrl ? (
-            <a href={forge.zipUrl} download className="btn w-full justify-center">
-              Download scaffold .zip ↓
-            </a>
+            <>
+              <a href={forge.zipUrl} download className="btn w-full justify-center">
+                Download scaffold .zip ↓
+              </a>
+              <div
+                className="mt-4 p-4 rounded text-xs text-ink-dim leading-relaxed space-y-2"
+                style={{ background: 'rgba(0,255,65,0.04)', border: '1px solid rgba(0,255,65,0.12)' }}
+              >
+                <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-accent mb-2">
+                  › how to use this scaffold
+                </div>
+                <p><strong>1.</strong> Download and unzip the file</p>
+                <p><strong>2.</strong> Create a new GitHub repo at <a href="https://github.com/new" target="_blank" rel="noreferrer" className="text-accent hover:underline">github.com/new</a> (name it anything)</p>
+                <p><strong>3.</strong> Open terminal in the unzipped folder and run:</p>
+                <pre className="font-mono text-[10px] text-ink p-2 rounded mt-1 overflow-x-auto" style={{ background: 'rgba(0,0,0,0.3)' }}>
+{`git init
+git add .
+git commit -m "forge: initial scaffold"
+git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
+git push -u origin main`}
+                </pre>
+                <p><strong>4.</strong> Run <code className="text-accent">npm install</code> then <code className="text-accent">npm run dev</code> to start building</p>
+                <p className="text-muted italic">The BLUEPRINT.md file inside has the full architecture + roadmap.</p>
+              </div>
+            </>
           ) : (
             <div className="text-xs text-muted font-mono">› scaffold not generated</div>
           )}
-          {forge.error && <div className="mt-3 text-[10px] text-ink-dim leading-relaxed">{forge.error}</div>}
         </div>
       </div>
     </Glow>
@@ -976,6 +1286,112 @@ function ForgeBlueprint({ forge }: { forge: ForgeOut }) {
             </ul>
           </div>
         )}
+
+        {/* Download + setup instructions */}
+        <div
+          className="rounded-lg p-6 space-y-4"
+          style={{ background: 'rgba(0,255,65,0.04)', border: '1px solid rgba(0,255,65,0.18)' }}
+        >
+          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent mb-1">
+            › get your scaffold running
+          </div>
+
+          {forge.repoUrl ? (
+            <div className="space-y-3">
+              <a
+                href={forge.repoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="btn inline-flex items-center gap-2"
+              >
+                Open GitHub repo ↗
+              </a>
+              <p className="text-sm text-ink-dim">
+                Your repo is live. Clone it and start building:
+              </p>
+              <pre
+                className="font-mono text-[11px] text-ink p-4 rounded overflow-x-auto leading-relaxed"
+                style={{ background: 'rgba(0,0,0,0.4)' }}
+              >
+{`git clone ${forge.repoUrl}.git
+cd ${forge.repoUrl.split('/').pop() || 'my-project'}
+npm install
+npm run dev`}
+              </pre>
+            </div>
+          ) : forge.zipUrl ? (
+            <div className="space-y-3">
+              <a href={forge.zipUrl} download className="btn inline-flex items-center gap-2">
+                Download scaffold .zip ↓
+              </a>
+              <p className="text-sm text-ink-dim">
+                Your MVP scaffold is ready. Follow these steps to set it up:
+              </p>
+              <div className="space-y-3 text-sm text-ink-dim">
+                <div className="flex gap-3">
+                  <span className="font-mono text-accent flex-shrink-0">01</span>
+                  <span>
+                    <strong className="text-ink">Download and unzip</strong> the file into a new folder
+                  </span>
+                </div>
+                <div className="flex gap-3">
+                  <span className="font-mono text-accent flex-shrink-0">02</span>
+                  <span>
+                    <strong className="text-ink">Create a new GitHub repo</strong> at{' '}
+                    <a
+                      href="https://github.com/new"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-accent hover:underline"
+                    >
+                      github.com/new
+                    </a>{' '}
+                    — pick any name, keep it public, <em>don't</em> add a README (one is already inside)
+                  </span>
+                </div>
+                <div className="flex gap-3">
+                  <span className="font-mono text-accent flex-shrink-0">03</span>
+                  <span>
+                    <strong className="text-ink">Open your terminal</strong> in the unzipped folder and run these
+                    commands (replace YOUR_USERNAME and YOUR_REPO with your GitHub details):
+                  </span>
+                </div>
+              </div>
+              <pre
+                className="font-mono text-[11px] text-ink p-4 rounded overflow-x-auto leading-relaxed"
+                style={{ background: 'rgba(0,0,0,0.4)' }}
+              >
+{`git init
+git add .
+git commit -m "forge: initial MVP scaffold"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
+git push -u origin main`}
+              </pre>
+              <div className="space-y-3 text-sm text-ink-dim">
+                <div className="flex gap-3">
+                  <span className="font-mono text-accent flex-shrink-0">04</span>
+                  <span>
+                    <strong className="text-ink">Install dependencies and start the dev server:</strong>
+                  </span>
+                </div>
+              </div>
+              <pre
+                className="font-mono text-[11px] text-ink p-4 rounded overflow-x-auto leading-relaxed"
+                style={{ background: 'rgba(0,0,0,0.4)' }}
+              >
+{`npm install
+npm run dev`}
+              </pre>
+              <p className="text-xs text-muted italic">
+                Read <strong>BLUEPRINT.md</strong> inside the scaffold for the full architecture,
+                data flow, API endpoints, and 12-week build roadmap.
+              </p>
+            </div>
+          ) : (
+            <div className="text-sm text-muted">Scaffold not generated yet.</div>
+          )}
+        </div>
       </div>
     </Glow>
   )
@@ -1234,64 +1650,74 @@ function InvestorList({ investors, reportId }: { investors: ConnectInvestor[]; r
             const effective = inv.effectiveScore ?? inv.compatibilityScore ?? 50
             return (
               <div key={inv.id} className="border" style={{ borderColor: 'rgba(0,255,65,0.18)' }}>
-                <div className="p-5 grid grid-cols-12 gap-4 items-center">
-                  <div className="col-span-12 md:col-span-3">
-                    <div className="font-display text-xl font-bold">{inv.firm}</div>
-                    <div className="text-sm text-ink-dim">{inv.name}</div>
-                    {eng && eng.stages.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {eng.stages.map((s, i) => (
+                <div className="p-5">
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-display text-xl font-bold">{inv.firm}</div>
+                      <div className="text-sm text-ink-dim">{inv.name}</div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="font-mono text-sm" style={{ color: 'var(--color-charge)' }}>
+                        {effective}%
+                      </div>
+                      {eng && eng.bonus !== 0 && (
+                        <div
+                          className="font-mono text-[10px]"
+                          style={{ color: eng.bonus > 0 ? '#2ECC71' : '#FB7185' }}
+                        >
+                          {eng.bonus > 0 ? '+' : ''}{eng.bonus} eng
+                        </div>
+                      )}
+                      <div className="font-mono text-[10px] text-muted">{inv.checkSize}</div>
+                    </div>
+                  </div>
+
+                  {inv.thesisMatch && (
+                    <div className="text-xs text-ink-dim italic mb-3">{inv.thesisMatch}</div>
+                  )}
+
+                  {eng && eng.stages.length > 0 && (
+                    <div className="flex items-center gap-1.5 mb-3">
+                      {eng.stages
+                        .filter((s) => {
+                          if (eng.bouncedAt && (s === 'opened' || s === 'clicked')) return false
+                          return true
+                        })
+                        .map((s, i) => {
+                        const stageColor =
+                          s === 'clicked' ? { bg: 'rgba(0,255,65,0.12)', text: '#00FF41' }
+                          : s === 'opened' ? { bg: 'rgba(251,191,36,0.12)', text: '#FBBF24' }
+                          : s === 'bounced' ? { bg: 'rgba(251,113,133,0.12)', text: '#FB7185' }
+                          : s === 'delivered' ? { bg: 'rgba(46,204,113,0.12)', text: '#2ECC71' }
+                          : { bg: 'rgba(0,255,65,0.08)', text: 'rgba(0,255,65,0.7)' }
+                        return (
                           <span
                             key={i}
-                            className="font-mono text-[9px] uppercase tracking-[0.15em] px-1.5 py-0.5"
-                            style={{
-                              color:
-                                s === 'clicked'
-                                  ? '#00FF41'
-                                  : s === 'opened'
-                                  ? '#FBBF24'
-                                  : s === 'bounced'
-                                  ? '#FB7185'
-                                  : 'rgba(0,255,65,0.7)',
-                              border: '1px solid currentColor',
-                              background: 'transparent',
-                            }}
+                            className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.12em] px-2 py-1 rounded-full"
+                            style={{ background: stageColor.bg, color: stageColor.text }}
                           >
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ background: stageColor.text }}
+                            />
                             {s}
                           </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="col-span-12 md:col-span-5">
-                    <div className="text-xs text-ink-dim italic">{inv.thesisMatch}</div>
-                  </div>
-                  <div className="col-span-6 md:col-span-2 text-right">
-                    <div className="font-mono text-sm" style={{ color: 'var(--color-charge)' }}>
-                      {effective}%
+                        )
+                      })}
                     </div>
-                    {eng && eng.bonus !== 0 && (
-                      <div
-                        className="font-mono text-[10px]"
-                        style={{ color: eng.bonus > 0 ? '#2ECC71' : '#FB7185' }}
-                      >
-                        {eng.bonus > 0 ? '+' : ''}
-                        {eng.bonus} engagement
-                      </div>
-                    )}
-                    <div className="font-mono text-[10px] text-muted">{inv.checkSize}</div>
-                  </div>
-                  <div className="col-span-6 md:col-span-2 text-right flex flex-col gap-1">
+                  )}
+
+                  <div className="flex items-center gap-2 justify-end">
                     <button
                       onClick={() => setOpenId(isOpen ? null : inv.id)}
-                      className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink-dim hover:text-accent"
+                      className="font-mono text-[10px] uppercase tracking-[0.15em] text-ink-dim hover:text-accent px-2 py-1.5"
                     >
                       {isOpen ? 'hide draft' : 'view draft'}
                     </button>
                     <button
                       onClick={() => send(inv.id)}
                       disabled={sentState === 'sending' || sentState === 'sent'}
-                      className="font-mono text-[10px] uppercase tracking-[0.15em] px-3 py-2 transition-all"
+                      className="font-mono text-[10px] uppercase tracking-[0.15em] px-3 py-1.5 rounded transition-all"
                       style={{
                         background: sentState === 'sent' ? 'rgba(0,255,65,0.15)' : 'var(--color-charge)',
                         color: sentState === 'sent' ? 'var(--color-charge)' : 'var(--color-void)',

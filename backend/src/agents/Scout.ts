@@ -9,6 +9,7 @@ import { searchWeb, type SerperResult } from '../services/serper.js'
 import { getTrends } from '../services/trends.js'
 import { validateSources, type CandidateSource } from '../services/sourceValidator.js'
 import { getOnchainSignals, type SolanaSnapshot } from '../services/solana.js'
+import { getCollisionReport, type CollisionReport } from '../services/collision.js'
 import { dnaContextBlock, type DNA } from '../services/dnaContext.js'
 
 export interface ScoutCompetitor {
@@ -46,6 +47,7 @@ export interface ScoutOutput {
   sources: ScoutSource[]
   summary: string
   onchain?: SolanaSnapshot // populated when the idea is web3 adjacent
+  collision?: CollisionReport // cross-platform collision (PH + YC + internal)
 }
 
 const SYSTEM = `You are Scout, a deep market intelligence analyst.
@@ -97,12 +99,17 @@ function serperToCandidates(results: SerperResult[]): CandidateSource[] {
   }))
 }
 
-export async function runScout(idea: string, dna?: DNA): Promise<ScoutOutput> {
+export async function runScout(
+  idea: string,
+  dna?: DNA,
+  founderId?: string,
+): Promise<ScoutOutput> {
   const query = `${idea} startup competitors funding 2025 ycombinator producthunt launch`
-  const [results, trends, onchain] = await Promise.all([
+  const [results, trends, onchain, collision] = await Promise.all([
     searchWeb(query, 14),
     getTrends(idea),
     getOnchainSignals(idea),
+    getCollisionReport(idea, founderId),
   ])
 
   // Pre-validate Serper results so the model is grounded on trusted sources only
@@ -113,6 +120,36 @@ export async function runScout(idea: string, dna?: DNA): Promise<ScoutOutput> {
     snippet: t.snippet,
     domain: t.domain,
   }))
+
+  const collisionBlock = `
+
+Real platform collision report (pulled just now from Product Hunt, YC, and the internal AgentConnect DB):
+${JSON.stringify(
+    {
+      score: collision.score,
+      summary: collision.summary,
+      breakdown: collision.breakdown,
+      productHuntLaunches: collision.productHuntLaunches.map((p) => ({
+        name: p.name,
+        tagline: p.tagline,
+        votes: p.votesCount,
+        createdAt: p.createdAt,
+        url: p.url,
+      })),
+      ycCompanies: collision.ycCompanies.map((c) => ({
+        name: c.name,
+        one_liner: c.one_liner,
+        batch: c.batch,
+        status: c.status,
+        website: c.website,
+      })),
+      internalCollisions: collision.internalIdeas.length,
+    },
+    null,
+    2,
+  )}
+
+Use this collision data to ground the collisionScore field. If this report shows 3+ platforms with direct matches, collisionScore MUST be ≥ 70. Surface 2-3 of the strongest matches as competitors if they're real, and mention the internal collision count in the summary if > 0.`
 
   const onchainBlock = onchain.relevant
     ? `
@@ -144,7 +181,7 @@ Treat these on-chain signals as first-class evidence — they are live market da
 Live web search results (pre-filtered to trusted domains only):
 ${JSON.stringify(trustedForPrompt, null, 2)}
 
-Google Trends signal: ${JSON.stringify(trends)}${onchainBlock}${dna ? dnaContextBlock(dna) : ''}
+Google Trends signal: ${JSON.stringify(trends)}${collisionBlock}${onchainBlock}${dna ? dnaContextBlock(dna) : ''}
 
 Produce the Scout intelligence brief. Pull real names from the search URLs.
 Never cite a source outside the list above.`
@@ -171,8 +208,16 @@ Never cite a source outside the list above.`
     trustScore: v.trustScore,
   }))
 
-  // Attach the raw snapshot so the frontend can render it.
+  // Attach the raw snapshots so the frontend can render them.
   if (onchain.relevant) out.onchain = onchain
+  out.collision = collision
+  // Blend the LLM's collisionScore with our real platform data — we trust the
+  // real data, so take the max. That makes the UI never under-report crowding.
+  if (typeof out.collisionScore === 'number') {
+    out.collisionScore = Math.max(out.collisionScore, collision.score)
+  } else {
+    out.collisionScore = collision.score
+  }
 
   return out
 }

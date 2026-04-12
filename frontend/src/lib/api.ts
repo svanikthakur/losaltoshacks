@@ -81,6 +81,19 @@ export const api = {
   /* investors */
   getInvestorTracking: (reportId: string) => req<{ tracking: any[]; matches: any[] }>(`/investors/tracking/${reportId}`),
   getRankedInvestors: (reportId: string) => req<{ ranked: any[] }>(`/investors/ranked/${reportId}`),
+
+  /* features */
+  abHeadlines: (reportId: string) => req<any>('/features/ab-headlines', { method: 'POST', body: JSON.stringify({ reportId }) }),
+  revenueModels: (reportId: string) => req<any>('/features/revenue-models', { method: 'POST', body: JSON.stringify({ reportId }) }),
+  competitorDeepDive: (reportId: string, competitorName: string) => req<any>('/features/competitor-deepdive', { method: 'POST', body: JSON.stringify({ reportId, competitorName }) }),
+  dueDiligence: (reportId: string) => req<any>('/features/due-diligence', { method: 'POST', body: JSON.stringify({ reportId }) }),
+  sprintPlan: (reportId: string) => req<any>('/features/sprint-plan', { method: 'POST', body: JSON.stringify({ reportId }) }),
+  cofounderSimStart: (reportId: string, role: string) => req<any>('/features/cofounder-sim/start', { method: 'POST', body: JSON.stringify({ reportId, role }) }),
+  cofounderSimScore: (reportId: string, questions: any[], answers: string[]) => req<any>('/features/cofounder-sim/score', { method: 'POST', body: JSON.stringify({ reportId, questions, answers }) }),
+  marketPulse: (reportId: string) => req<any>('/pulse/market-pulse', { method: 'POST', body: JSON.stringify({ reportId }) }),
+  cohortBenchmarks: (reportId: string) => req<any>(`/pulse/benchmarks/${reportId}`),
+  warmIntroMapper: () => req<any>('/features/warm-intro', { method: 'POST', body: '{}' }),
+  voicePitchCoach: () => req<any>('/features/voice-coach', { method: 'POST', body: '{}' }),
 }
 
 export function openAgentSocket(reportId: string, onEvent: (e: any) => void) {

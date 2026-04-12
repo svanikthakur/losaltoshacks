@@ -35,7 +35,8 @@ ${pixel}
 </body></html>`
 
   try {
-    await sgMail.send({
+    console.log(`[sendgrid] sending to=${args.to} subject="${args.subject.slice(0, 50)}" from=${process.env.SENDGRID_FROM_EMAIL}`)
+    const [response] = await sgMail.send({
       to: args.to,
       from: {
         email: process.env.SENDGRID_FROM_EMAIL,
@@ -43,8 +44,6 @@ ${pixel}
       },
       subject: args.subject,
       html: wrappedHtml,
-      // customArgs thread through to webhook events — we use them to tie every
-      // open/click back to the vc_match_id that originated the send.
       customArgs: {
         tracking_token: args.trackingToken,
         ...(args.customArgs || {}),
@@ -54,9 +53,12 @@ ${pixel}
         openTracking: { enable: true },
       },
     })
+    console.log(`[sendgrid] ✓ accepted · status=${response.statusCode} to=${args.to}`)
     return { ok: true }
   } catch (err: any) {
     const msg = err?.response?.body?.errors?.[0]?.message || err?.message || 'sendgrid failed'
+    const status = err?.code || err?.response?.statusCode || '?'
+    console.error(`[sendgrid] ✗ failed · status=${status} to=${args.to} error="${msg}"`)
     return { ok: false, error: msg }
   }
 }

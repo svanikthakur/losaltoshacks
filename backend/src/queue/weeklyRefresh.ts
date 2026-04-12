@@ -29,7 +29,7 @@ async function refreshOne(reportId: string): Promise<{ before: number; after: nu
   const dna = dnaFromFounder(founder)
 
   const [scoutOut, atlasOut] = await Promise.all([
-    runScout(r.ideaText, dna).catch((err: unknown) => {
+    runScout(r.ideaText, dna, r.founderId).catch((err: unknown) => {
       console.warn(`[weekly] scout failed for ${reportId}:`, (err as Error).message)
       return null
     }),
