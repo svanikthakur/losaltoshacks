@@ -185,6 +185,11 @@ function AgentCard({ def, status }: { def: (typeof AGENT_DEFS)[number]; status: 
   const running = status === 'running'
   const done = status === 'complete'
   const errored = status === 'error'
+
+  const width = done ? '100%' : errored ? '100%' : running ? '85%' : '0%'
+  const barColor = errored ? '#FB7185' : 'var(--color-charge)'
+  const barDuration = done ? 0.5 : running ? 30 : 0.3
+
   return (
     <BorderGlow
       backgroundColor="#0C0F15"
@@ -195,7 +200,6 @@ function AgentCard({ def, status }: { def: (typeof AGENT_DEFS)[number]; status: 
       edgeSensitivity={20}
     >
       <div className="p-7 relative overflow-hidden">
-        {/* Left status slab */}
         <span
           aria-hidden
           className="absolute inset-y-0 left-0 transition-[width] duration-500"
@@ -217,21 +221,22 @@ function AgentCard({ def, status }: { def: (typeof AGENT_DEFS)[number]; status: 
           <StatusPill status={status} />
         </div>
 
-        {/* Animated progress bar (visible on running, locked when done) */}
-        <div className="mt-5 h-[2px] relative overflow-hidden" style={{ background: 'rgba(0,255,65,0.10)' }}>
+        <div className="mt-5 h-[3px] rounded-full relative overflow-hidden" style={{ background: 'rgba(0,255,65,0.10)' }}>
           <motion.div
-            className="absolute inset-y-0 left-0"
-            initial={{ width: 0 }}
-            animate={{
-              width: done ? '100%' : running ? ['0%', '90%'] : '0%',
-            }}
-            transition={
-              running
-                ? { duration: 25, ease: [0.16, 1, 0.3, 1] }
-                : { duration: 0.4, ease: [0.16, 1, 0.3, 1] }
-            }
-            style={{ background: 'var(--color-charge)' }}
+            className="absolute inset-y-0 left-0 rounded-full"
+            animate={{ width }}
+            transition={{ duration: barDuration, ease: [0.16, 1, 0.3, 1] }}
+            style={{ background: barColor }}
           />
+          {done && (
+            <motion.div
+              className="absolute inset-0 rounded-full"
+              initial={{ opacity: 0.6 }}
+              animate={{ opacity: 0 }}
+              transition={{ duration: 1.5 }}
+              style={{ background: 'var(--color-charge)', filter: 'blur(6px)' }}
+            />
+          )}
         </div>
       </div>
     </BorderGlow>
