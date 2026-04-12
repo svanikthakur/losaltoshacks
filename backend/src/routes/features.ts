@@ -2,6 +2,8 @@ import { Router } from 'express'
 import { db } from '../db/index.js'
 import { callAgentJSON } from '../services/ai.js'
 import { searchWeb } from '../services/serper.js'
+import fs from 'fs'
+import path from 'path'
 
 const router = Router()
 
@@ -212,8 +214,73 @@ router.post('/cofounder-sim/score', async (req, res, next) => {
   }
 })
 
-router.post('/warm-intro', async (_req, res) => {
-  res.status(501).json({ error: 'Coming soon — requires LinkedIn OAuth / browser audio' })
+router.post('/warm-intro', async (req, res, next) => {
+  try {
+    const { reportId } = req.body || {}
+    const r = await db.getReport(reportId)
+    if (!r || r.founderId !== req.founderId) return res.status(404).json({ error: 'Not found' })
+    if (!r.connect_output) {
+      return res.status(400).json({ error: 'Report not ready (Connect required)' })
+    }
+
+    const connect = r.connect_output as Record<string, unknown>
+    const topVCs = connect.topVCs as Array<{ name: string; firm: string }> | undefined
+    if (!topVCs || topVCs.length === 0) {
+      return res.status(400).json({ error: 'No VCs found in report' })
+    }
+
+    const founder = await db.getFounder(r.founderId)
+    const dna = (founder as any)?.dna || {}
+
+    const result = await callAgentJSON<{
+      paths: Array<{
+        vcName: string
+        firm: string
+        path: string[]
+        connectionType: string
+        strength: 'strong' | 'medium' | 'weak'
+        advice: string
+      }>
+    }>(
+      'connect',
+      `You are a warm intro strategist. Given a founder's DNA (skills, location, industry, prior startups) and a list of target VCs, generate a plausible warm introduction path for each VC.
+
+Each path should follow the format: "You → [connection type] → [intermediary] → [VC partner]"
+
+Use the founder's background to create realistic intermediary connections — for example:
+- Ex-colleagues from specific companies
+- University alumni networks
+- Industry conference connections
+- Portfolio founders from the VC's fund
+- Angel investors in the space
+
+Return JSON:
+{
+  "paths": [{
+    "vcName": string,
+    "firm": string,
+    "path": string[] (array of nodes in the chain, starting with "You"),
+    "connectionType": string (e.g. "ex-colleague", "alumni network", "portfolio founder", "industry peer"),
+    "strength": "strong" | "medium" | "weak",
+    "advice": string (1-2 sentences on how to approach this intro)
+  }]
+}`,
+      `Founder DNA:
+- Skills: ${JSON.stringify(dna.skills || [])}
+- Location: ${dna.location || 'Unknown'}
+- Industry: ${dna.industry || 'Unknown'}
+- Prior startups: ${JSON.stringify(dna.priorStartups || [])}
+
+Target VCs:
+${topVCs.slice(0, 10).map((vc: { name: string; firm: string }) => `- ${vc.name} at ${vc.firm}`).join('\n')}
+
+Idea: ${r.ideaText}`,
+      { temperature: 0.5, timeoutMs: 60_000 },
+    )
+    res.json(result)
+  } catch (err) {
+    next(err)
+  }
 })
 
 router.post('/voice-coach', async (req, res, next) => {
@@ -259,7 +326,38 @@ Here is the founder's spoken pitch transcript (recorded via browser speech recog
 Score this pitch.`,
       { temperature: 0.3, timeoutMs: 30_000 },
     )
-    res.json(result)
+
+    let audioUrl: string | null = null
+    const elevenLabsKey = process.env.ELEVENLABS_API_KEY
+    if (elevenLabsKey && result.feedback && reportId) {
+      try {
+        const audioDir = path.join(process.cwd(), 'storage', 'audio')
+        fs.mkdirSync(audioDir, { recursive: true })
+        const voiceId = '21m00Tcm4TlvDq8ikWAM'
+        const ttsRes = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+          method: 'POST',
+          headers: {
+            'xi-api-key': elevenLabsKey,
+            'Content-Type': 'application/json',
+            'Accept': 'audio/mpeg',
+          },
+          body: JSON.stringify({
+            text: result.feedback,
+            model_id: 'eleven_monolingual_v1',
+          }),
+        })
+        if (ttsRes.ok) {
+          const audioBuffer = Buffer.from(await ttsRes.arrayBuffer())
+          const fileName = `${reportId}_pitch_feedback.mp3`
+          fs.writeFileSync(path.join(audioDir, fileName), audioBuffer)
+          audioUrl = `/storage/audio/${fileName}`
+        }
+      } catch (_e) {
+        // ElevenLabs failed — continue without audio
+      }
+    }
+
+    res.json({ ...result, ...(audioUrl ? { audioUrl } : {}) })
   } catch (err) {
     next(err)
   }

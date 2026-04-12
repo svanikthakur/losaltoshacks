@@ -81,7 +81,7 @@ export default function FeatureHub({ reportId, competitors }: Props) {
         <CohortBenchmark reportId={reportId} />
         <DownloadReports reportId={reportId} />
         <VoicePitchCoach reportId={reportId} />
-        <ComingSoon label="Warm Intro Mapper" desc="Map LinkedIn paths to target VCs" />
+        <WarmIntroMapper reportId={reportId} />
       </div>
     </div>
   )
@@ -580,7 +580,6 @@ function VoicePitchCoach({ reportId }: { reportId: string }) {
     setState('loading')
     setPhase('scored')
     try {
-      const r = await api.abHeadlines(reportId)
       const res = await fetch('/api/features/voice-coach', {
         method: 'POST',
         headers: {
@@ -731,6 +730,64 @@ function VoicePitchCoach({ reportId }: { reportId: string }) {
         </div>
       )}
     </div>
+  )
+}
+
+/* ─── Warm Intro Mapper ─── */
+function WarmIntroMapper({ reportId }: { reportId: string }) {
+  const [state, setState] = useState<ToolState>('idle')
+  const [data, setData] = useState<any>(null)
+  const run = async () => {
+    setState('loading')
+    try {
+      const r = await api.warmIntroMapper(reportId)
+      setData(r)
+      setState('done')
+    } catch { setState('error') }
+  }
+
+  const strengthColor = (s: string) =>
+    s === 'strong' ? '#10B981' : s === 'medium' ? '#F59E0B' : '#EF4444'
+
+  return (
+    <Card label="Warm Intro Mapper" desc="Map plausible warm intro paths to your target VCs" state={state} onRun={run} accent="#8B5CF6">
+      {data?.paths?.map((p: any, i: number) => (
+        <div key={i} className="text-xs border-b border-white/5 pb-3 last:border-0">
+          <div className="flex items-baseline justify-between mb-1.5">
+            <span className="font-mono uppercase text-[10px]" style={{ color: '#8B5CF6' }}>
+              {p.firm}
+            </span>
+            <span
+              className="font-mono text-[9px] uppercase px-1.5 py-0.5 rounded-full"
+              style={{
+                background: `${strengthColor(p.strength)}18`,
+                color: strengthColor(p.strength),
+              }}
+            >
+              {p.strength}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1 text-ink mb-1.5">
+            {p.path?.map((node: string, j: number) => (
+              <span key={j} className="flex items-center gap-1">
+                {j > 0 && <span className="text-muted mx-0.5">&rarr;</span>}
+                <span
+                  className="px-1.5 py-0.5 rounded"
+                  style={{
+                    background: j === 0 ? 'rgba(139,92,246,0.12)' : j === p.path.length - 1 ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.04)',
+                    color: j === 0 ? '#8B5CF6' : j === p.path.length - 1 ? '#10B981' : 'inherit',
+                  }}
+                >
+                  {node}
+                </span>
+              </span>
+            ))}
+          </div>
+          <div className="text-muted text-[10px] mb-1">via {p.connectionType}</div>
+          <div className="text-ink-dim italic">{p.advice}</div>
+        </div>
+      ))}
+    </Card>
   )
 }
 

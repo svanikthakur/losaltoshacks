@@ -12,6 +12,10 @@ import { useEffect, useState } from 'react'
 import BorderGlow from './BorderGlow'
 import { api } from '../lib/api'
 import FeatureHub from './FeatureHub'
+import {
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
+} from 'recharts'
 
 type Maybe<T> = T | undefined | null
 
@@ -281,6 +285,8 @@ export default function DashboardView({ report }: { report: ReportLike }) {
       <div className="shell space-y-10">
         <Header idea={report.idea} score={validationScore} opportunity={atlas.opportunityScore} />
 
+        <QuickStats scout={scout} atlas={atlas} forge={forge} connect={connect} validationScore={validationScore} />
+
         {/* ── SECTION 1: Market Intelligence (Scout) ── */}
         {scout.marketArticle && <MarketArticle scout={scout} />}
         {!scout.marketArticle && scout.summary && <ScoutSummary scout={scout} />}
@@ -323,6 +329,57 @@ export default function DashboardView({ report }: { report: ReportLike }) {
         />
       </div>
     </main>
+  )
+}
+
+/* ================================================================ */
+/* QUICK STATS ROW                                                   */
+/* ================================================================ */
+function QuickStats({
+  scout,
+  atlas,
+  forge,
+  connect,
+  validationScore,
+}: {
+  scout: ScoutOut
+  atlas: AtlasOut
+  forge: ForgeOut
+  connect: ConnectOut
+  validationScore: number | null
+}) {
+  const stats = [
+    { label: 'Validation', value: validationScore ?? '—', max: '/10', color: '#00FF41' },
+    { label: 'Opportunity', value: atlas?.opportunityScore ?? '—', max: '/100', color: '#22D3EE' },
+    { label: 'Collision', value: scout?.collisionScore ?? '—', max: '/100', color: '#F59E0B' },
+    { label: 'Readiness', value: connect?.investorReadinessScore ?? '—', max: '/100', color: '#A855F7' },
+    { label: 'Buildability', value: forge?.buildabilityScore ?? '—', max: '/100', color: '#34D399' },
+    { label: 'Demand', value: scout?.demandLevel ?? '—', max: '', color: '#FB7185' },
+  ]
+  return (
+    <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
+      {stats.map((s) => (
+        <div
+          key={s.label}
+          className="flex-shrink-0 min-w-[130px] rounded-xl p-4"
+          style={{
+            background: 'rgba(255,255,255,0.03)',
+            backdropFilter: 'blur(12px)',
+            border: `1px solid ${s.color}22`,
+          }}
+        >
+          <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted mb-2">
+            {s.label}
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="font-display text-2xl font-bold" style={{ color: s.color }}>
+              {s.value}
+            </span>
+            {s.max && <span className="font-mono text-[10px] text-muted">{s.max}</span>}
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -844,8 +901,176 @@ function StrategicPlan({ atlas }: { atlas: AtlasOut }) {
             )}
           </div>
         )}
+
+        <AtlasOpportunityRadar atlas={atlas} />
+        <AtlasTailwindHeadwindBars atlas={atlas} />
+        <AtlasRegionMap atlas={atlas} />
       </div>
     </Glow>
+  )
+}
+
+/* ================================================================ */
+/* ATLAS — Opportunity Radar Chart                                   */
+/* ================================================================ */
+function AtlasOpportunityRadar({ atlas }: { atlas: AtlasOut }) {
+  const parseNum = (s?: string) => {
+    if (!s) return 0
+    const m = s.replace(/[^0-9.BMKbmk]/g, '')
+    const num = parseFloat(m) || 0
+    if (/B/i.test(s)) return num * 1000
+    if (/M/i.test(s)) return num
+    if (/K/i.test(s)) return num / 1000
+    return num / 1_000_000
+  }
+
+  const tamVal = parseNum(atlas.tam)
+  const marketSize = Math.min(10, tamVal > 0 ? Math.round(Math.log10(tamVal + 1) * 3.3) : 0)
+  const growthRate = Math.min(10, (atlas.tailwinds?.length ?? 0) * 2)
+  const competition = Math.min(10, 10 - Math.min(10, (atlas.headwinds?.length ?? 0) * 2))
+  const accessibility = atlas.launchRegion ? 7 : 4
+  const customerReadiness = Math.min(10, (atlas.customerSegments?.length ?? 0) * 2.5)
+  const overall = (atlas.opportunityScore ?? 50) / 10
+
+  const radarData = [
+    { dimension: 'Market Size', value: marketSize },
+    { dimension: 'Growth Rate', value: growthRate },
+    { dimension: 'Competition', value: competition },
+    { dimension: 'Accessibility', value: accessibility },
+    { dimension: 'Cust. Readiness', value: customerReadiness },
+    { dimension: 'Overall', value: overall },
+  ]
+
+  if (radarData.every((d) => d.value === 0)) return null
+
+  return (
+    <div>
+      <SectionLabel>› opportunity radar</SectionLabel>
+      <div className="flex justify-center">
+        <ResponsiveContainer width="100%" height={320}>
+          <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
+            <PolarGrid stroke="rgba(255,255,255,0.08)" />
+            <PolarAngleAxis
+              dataKey="dimension"
+              tick={{ fill: '#B3ADA2', fontSize: 10, fontFamily: 'monospace' }}
+            />
+            <PolarRadiusAxis
+              angle={30}
+              domain={[0, 10]}
+              tick={{ fill: '#6B6660', fontSize: 9 }}
+            />
+            <Radar
+              name="Opportunity"
+              dataKey="value"
+              stroke="#00FF41"
+              fill="#00FF41"
+              fillOpacity={0.15}
+              strokeWidth={2}
+            />
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )
+}
+
+/* ================================================================ */
+/* ATLAS — Tailwinds vs Headwinds Bar Chart                          */
+/* ================================================================ */
+function AtlasTailwindHeadwindBars({ atlas }: { atlas: AtlasOut }) {
+  const tailwinds = atlas.tailwinds ?? []
+  const headwinds = atlas.headwinds ?? []
+  if (tailwinds.length === 0 && headwinds.length === 0) return null
+
+  const maxLen = Math.max(tailwinds.length, headwinds.length)
+  const barData = Array.from({ length: maxLen }, (_, i) => ({
+    index: i,
+    tailwind: tailwinds[i] ? 1 : 0,
+    headwind: headwinds[i] ? -1 : 0,
+    tailwindLabel: tailwinds[i] || '',
+    headwindLabel: headwinds[i] || '',
+  }))
+
+  const labelData: Array<{ label: string; type: 'tailwind' | 'headwind'; value: number }> = [
+    ...tailwinds.map((t) => ({ label: t.length > 40 ? t.slice(0, 37) + '...' : t, type: 'tailwind' as const, value: 1 })),
+    ...headwinds.map((h) => ({ label: h.length > 40 ? h.slice(0, 37) + '...' : h, type: 'headwind' as const, value: 1 })),
+  ]
+
+  return (
+    <div>
+      <SectionLabel>› tailwinds vs headwinds</SectionLabel>
+      <ResponsiveContainer width="100%" height={Math.max(200, labelData.length * 36 + 40)}>
+        <BarChart data={labelData} layout="vertical" margin={{ left: 160, right: 20, top: 10, bottom: 10 }}>
+          <XAxis type="number" hide />
+          <YAxis
+            type="category"
+            dataKey="label"
+            tick={{ fill: '#B3ADA2', fontSize: 10, fontFamily: 'monospace' }}
+            width={150}
+          />
+          <Tooltip
+            contentStyle={{ background: '#1a1d24', border: '1px solid rgba(0,255,65,0.2)', fontSize: 11 }}
+            labelStyle={{ color: '#F5F5F0' }}
+          />
+          <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+            {labelData.map((entry, idx) => (
+              <Cell
+                key={idx}
+                fill={entry.type === 'tailwind' ? '#10B981' : '#EF4444'}
+                fillOpacity={0.7}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
+
+/* ================================================================ */
+/* ATLAS — Region Map (top regions as ranked cards)                   */
+/* ================================================================ */
+function AtlasRegionMap({ atlas }: { atlas: AtlasOut }) {
+  const regions = atlas.topRegions ?? []
+  if (regions.length === 0) return null
+
+  const medalColors = ['#FFD700', '#C0C0C0', '#CD7F32']
+  const medalLabels = ['1st', '2nd', '3rd']
+
+  return (
+    <div>
+      <SectionLabel>› top launch regions</SectionLabel>
+      <div className="grid md:grid-cols-3 gap-3">
+        {regions.slice(0, 6).map((r, i) => (
+          <div
+            key={i}
+            className="rounded-xl p-5 relative overflow-hidden"
+            style={{
+              background: i < 3
+                ? `linear-gradient(135deg, ${medalColors[i]}08, ${medalColors[i]}15)`
+                : 'rgba(255,255,255,0.03)',
+              border: `1px solid ${i < 3 ? `${medalColors[i]}44` : 'rgba(255,255,255,0.08)'}`,
+            }}
+          >
+            {i < 3 && (
+              <div
+                className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center font-mono text-[10px] font-bold"
+                style={{ background: `${medalColors[i]}22`, color: medalColors[i] }}
+              >
+                {medalLabels[i]}
+              </div>
+            )}
+            {i >= 3 && (
+              <div className="absolute top-3 right-3 font-mono text-[10px] text-muted">
+                #{i + 1}
+              </div>
+            )}
+            <div className="font-display text-lg font-bold mb-2">{r.name}</div>
+            <div className="text-xs text-ink-dim pr-8">{r.why}</div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 

@@ -92,7 +92,7 @@ export const api = {
   cofounderSimScore: (reportId: string, questions: any[], answers: string[]) => req<any>('/features/cofounder-sim/score', { method: 'POST', body: JSON.stringify({ reportId, questions, answers }) }),
   marketPulse: (reportId: string) => req<any>('/pulse/market-pulse', { method: 'POST', body: JSON.stringify({ reportId }) }),
   cohortBenchmarks: (reportId: string) => req<any>(`/pulse/benchmarks/${reportId}`),
-  warmIntroMapper: () => req<any>('/features/warm-intro', { method: 'POST', body: '{}' }),
+  warmIntroMapper: (reportId: string) => req<any>('/features/warm-intro', { method: 'POST', body: JSON.stringify({ reportId }) }),
   voicePitchCoach: () => req<any>('/features/voice-coach', { method: 'POST', body: '{}' }),
 }
 
