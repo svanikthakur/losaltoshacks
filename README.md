@@ -243,6 +243,6 @@ Visual effects: matrix rain canvas, mouse-tracked heat bloom, grain overlay, sca
 
 ---
 
-Built at Los Altos Hacks 2025.
+Built at Los Altos Hacks 2026.
 test contribution
 .
